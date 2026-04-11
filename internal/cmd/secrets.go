@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newSecretsCmd creates the secrets command.
 func newSecretsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "secrets",
@@ -22,6 +23,7 @@ func newSecretsCmd() *cobra.Command {
 	return cmd
 }
 
+// newListSecretsCmd creates the list-secrets subcommand.
 func newListSecretsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list-secrets",
@@ -33,6 +35,7 @@ func newListSecretsCmd() *cobra.Command {
 	}
 }
 
+// runListSecrets executes the list-secrets command.
 func runListSecrets(ctx context.Context) error {
 	if err := EnsureCredentials(); err != nil {
 		return err
@@ -46,6 +49,7 @@ func runListSecrets(ctx context.Context) error {
 	return listSecrets(ctx, secretsmanager.NewFromConfig(cfg))
 }
 
+// listSecrets lists secrets using the provided API client.
 func listSecrets(ctx context.Context, api secretsListAPI) error {
 	output, err := api.ListSecrets(ctx, &secretsmanager.ListSecretsInput{})
 	if err != nil {

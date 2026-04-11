@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
+// secretsListAPI defines the interface for listing secrets.
 type secretsListAPI interface {
 	ListSecrets(
 		ctx context.Context,
@@ -17,6 +18,7 @@ type secretsListAPI interface {
 	) (*secretsmanager.ListSecretsOutput, error)
 }
 
+// sqsListAPI defines the interface for listing SQS queues.
 type sqsListAPI interface {
 	ListQueues(
 		ctx context.Context,
@@ -25,6 +27,7 @@ type sqsListAPI interface {
 	) (*sqs.ListQueuesOutput, error)
 }
 
+// s3ListAPI defines the interface for listing S3 buckets.
 type s3ListAPI interface {
 	ListBuckets(
 		ctx context.Context,
@@ -33,6 +36,7 @@ type s3ListAPI interface {
 	) (*s3.ListBucketsOutput, error)
 }
 
+// kafkaListClustersAPI defines the interface for listing MSK clusters.
 type kafkaListClustersAPI interface {
 	ListClustersV2(
 		ctx context.Context,
@@ -41,6 +45,7 @@ type kafkaListClustersAPI interface {
 	) (*kafka.ListClustersV2Output, error)
 }
 
+// kafkaListTopicsAPI defines the interface for listing MSK topics.
 type kafkaListTopicsAPI interface {
 	ListTopics(
 		ctx context.Context,
@@ -49,6 +54,7 @@ type kafkaListTopicsAPI interface {
 	) (*kafka.ListTopicsOutput, error)
 }
 
+// derefInt32 dereferences an int32 pointer, returning 0 if nil.
 func derefInt32(i *int32) int32 {
 	if i == nil {
 		return 0

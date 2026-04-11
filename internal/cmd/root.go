@@ -1,10 +1,17 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 )
 
-const DefaultAWSRegion = "eu-central-1"
+var DefaultAWSRegion = func() string {
+	if region := os.Getenv("AWS_DEFAULT_REGION"); region != "" {
+		return region
+	}
+	return "eu-central-1"
+}()
 
 var Version = "dev"
 

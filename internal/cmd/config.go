@@ -48,6 +48,7 @@ Configure credentials using one of the following methods:
   • Ensure EKS Pod has IRSA configured
 `
 
+// IsCredentialError checks if the given error is related to missing or invalid credentials.
 func IsCredentialError(err error) bool {
 	if err == nil {
 		return false
@@ -63,6 +64,7 @@ func IsCredentialError(err error) bool {
 	return false
 }
 
+// LoadAWSConfig loads the AWS configuration for the given context.
 func LoadAWSConfig(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
 	options := []func(*config.LoadOptions) error{
 		config.WithRegion(DefaultAWSRegion),
@@ -72,19 +74,20 @@ func LoadAWSConfig(ctx context.Context, optFns ...func(*config.LoadOptions) erro
 	return config.LoadDefaultConfig(ctx, options...)
 }
 
+// EnsureCredentials verifies that AWS credentials are available.
 func EnsureCredentials() error {
 	auth := DetectAuthMethod()
 
-	switch auth.Type {
-	case AuthMethodUnknown:
+	if auth.Type == AuthMethodUnknown {
 		fmt.Fprint(os.Stderr, noCredentialsMessage)
 
 		return errors.New("checking credentials: no credentials available")
-	default:
-		return nil
 	}
+
+	return nil
 }
 
+// DetectAuthMethod detects the current AWS authentication method based on environment variables.
 func DetectAuthMethod() AuthMethod {
 	if tokenFile := os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"); tokenFile != "" {
 		return AuthMethod{
@@ -111,16 +114,18 @@ func DetectAuthMethod() AuthMethod {
 	}
 
 	if _, hasKey := os.LookupEnv("AWS_ACCESS_KEY_ID"); hasKey {
-		if isSSOEnvironment() {
-			return AuthMethod{
-				Type:           AuthMethodSSO,
-				IdentitySource: "AWS IAM Identity Center (SSO)",
+		if _, hasSecret := os.LookupEnv("AWS_SECRET_ACCESS_KEY"); hasSecret {
+			if isSSOEnvironment() {
+				return AuthMethod{
+					Type:           AuthMethodSSO,
+					IdentitySource: "AWS IAM Identity Center (SSO)",
+				}
 			}
-		}
 
-		return AuthMethod{
-			Type:           AuthMethodStaticCreds,
-			IdentitySource: "Static credentials (environment variables)",
+			return AuthMethod{
+				Type:           AuthMethodStaticCreds,
+				IdentitySource: "Static credentials (environment variables)",
+			}
 		}
 	}
 
@@ -175,11 +180,12 @@ func isSSOProfile(profile string) bool {
 		return false
 	}
 
-	nextSectionIdx := strings.Index(content[ssoStartIdx+len(profileSection):], "[")
+	nextSectionBase := ssoStartIdx + len(profileSection)
+	nextSectionIdx := strings.Index(content[nextSectionBase:], "[")
 
-	sectionContent := content[ssoStartIdx:]
+	sectionContent := content[nextSectionBase:]
 	if nextSectionIdx != -1 {
-		sectionContent = content[ssoStartIdx : ssoStartIdx+nextSectionIdx]
+		sectionContent = content[nextSectionBase : nextSectionBase+nextSectionIdx]
 	}
 
 	return strings.Contains(sectionContent, "sso_start_url") ||

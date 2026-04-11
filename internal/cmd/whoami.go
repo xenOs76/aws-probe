@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// stsCallerIdentityAPI defines the interface for calling STS GetCallerIdentity.
 type stsCallerIdentityAPI interface {
 	GetCallerIdentity(
 		ctx context.Context,
@@ -18,6 +19,7 @@ type stsCallerIdentityAPI interface {
 	) (*sts.GetCallerIdentityOutput, error)
 }
 
+// newWhoamiCmd creates the whoami command.
 func newWhoamiCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "whoami",
@@ -41,6 +43,7 @@ method used (EC2 role, EKS IRSA, SSO, etc.).`,
 	}
 }
 
+// runWhoami executes the whoami command.
 func runWhoami(ctx context.Context, api stsCallerIdentityAPI) error {
 	auth := DetectAuthMethod()
 
@@ -76,6 +79,7 @@ func runWhoami(ctx context.Context, api stsCallerIdentityAPI) error {
 	return tw.Flush()
 }
 
+// derefString dereferences a string pointer, returning empty string if nil.
 func derefString(s *string) string {
 	if s == nil {
 		return ""

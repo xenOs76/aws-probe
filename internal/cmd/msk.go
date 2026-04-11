@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newMskCmd creates the MSK command.
 func newMskCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "msk",
@@ -23,6 +24,7 @@ func newMskCmd() *cobra.Command {
 	return cmd
 }
 
+// newListClustersCmd creates the list-clusters subcommand.
 func newListClustersCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list-clusters",
@@ -34,6 +36,7 @@ func newListClustersCmd() *cobra.Command {
 	}
 }
 
+// newListTopicsCmd creates the list-topics subcommand.
 func newListTopicsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list-topics [cluster-arn]",
@@ -46,6 +49,7 @@ func newListTopicsCmd() *cobra.Command {
 	}
 }
 
+// runListClusters executes the list-clusters command.
 func runListClusters(ctx context.Context) error {
 	if err := EnsureCredentials(); err != nil {
 		return err
@@ -59,6 +63,7 @@ func runListClusters(ctx context.Context) error {
 	return listClusters(ctx, kafka.NewFromConfig(cfg))
 }
 
+// runListTopics executes the list-topics command.
 func runListTopics(ctx context.Context, clusterArn string) error {
 	if err := EnsureCredentials(); err != nil {
 		return err
@@ -72,6 +77,7 @@ func runListTopics(ctx context.Context, clusterArn string) error {
 	return listTopics(ctx, clusterArn, kafka.NewFromConfig(cfg))
 }
 
+// listClusters lists MSK clusters using the provided API client.
 func listClusters(ctx context.Context, api kafkaListClustersAPI) error {
 	output, err := api.ListClustersV2(ctx, &kafka.ListClustersV2Input{})
 	if err != nil {
@@ -99,6 +105,7 @@ func listClusters(ctx context.Context, api kafkaListClustersAPI) error {
 	return tw.Flush()
 }
 
+// listTopics lists MSK topics for a given cluster using the provided API client.
 func listTopics(ctx context.Context, clusterArn string, api kafkaListTopicsAPI) error {
 	output, err := api.ListTopics(ctx, &kafka.ListTopicsInput{
 		ClusterArn: &clusterArn,

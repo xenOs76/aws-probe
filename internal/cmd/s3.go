@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newS3Cmd creates the S3 command.
 func newS3Cmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "s3",
@@ -22,6 +23,7 @@ func newS3Cmd() *cobra.Command {
 	return cmd
 }
 
+// newListBucketsCmd creates the list-buckets subcommand.
 func newListBucketsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list-buckets",
@@ -33,6 +35,7 @@ func newListBucketsCmd() *cobra.Command {
 	}
 }
 
+// runListBuckets executes the list-buckets command.
 func runListBuckets(ctx context.Context) error {
 	if err := EnsureCredentials(); err != nil {
 		return err
@@ -46,6 +49,7 @@ func runListBuckets(ctx context.Context) error {
 	return listBuckets(ctx, s3.NewFromConfig(cfg))
 }
 
+// listBuckets lists S3 buckets using the provided API client.
 func listBuckets(ctx context.Context, api s3ListAPI) error {
 	output, err := api.ListBuckets(ctx, &s3.ListBucketsInput{})
 	if err != nil {

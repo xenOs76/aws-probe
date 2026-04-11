@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newSqsCmd creates the SQS command.
 func newSqsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sqs",
@@ -22,6 +23,7 @@ func newSqsCmd() *cobra.Command {
 	return cmd
 }
 
+// newListQueuesCmd creates the list-queues subcommand.
 func newListQueuesCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list-queues",
@@ -33,6 +35,7 @@ func newListQueuesCmd() *cobra.Command {
 	}
 }
 
+// runListQueues executes the list-queues command.
 func runListQueues(ctx context.Context) error {
 	if err := EnsureCredentials(); err != nil {
 		return err
@@ -46,6 +49,7 @@ func runListQueues(ctx context.Context) error {
 	return listQueues(ctx, sqs.NewFromConfig(cfg))
 }
 
+// listQueues lists SQS queues using the provided API client.
 func listQueues(ctx context.Context, api sqsListAPI) error {
 	output, err := api.ListQueues(ctx, &sqs.ListQueuesInput{})
 	if err != nil {
