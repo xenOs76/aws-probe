@@ -13,6 +13,10 @@ on:
 jobs:
   go_tests:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # Required to checkout and read repo files
+      security-events: write # Required to upload SARIF files to Security tab
+
     strategy:
       max-parallel: 1
       matrix:
@@ -21,8 +25,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
       - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: "fs"
           ignore-unfixed: true
