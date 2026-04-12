@@ -55,8 +55,6 @@ func listSecrets(ctx context.Context, api secretsListAPI) error {
 
 	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 
-	fmt.Fprint(tw, "NAME\tARN\n")
-
 	hasSecrets := false
 
 	for paginator.HasMorePages() {
@@ -67,15 +65,17 @@ func listSecrets(ctx context.Context, api secretsListAPI) error {
 		}
 
 		for _, secret := range output.SecretList {
+			if !hasSecrets {
+				fmt.Fprint(tw, "NAME\tARN\n")
+
+				hasSecrets = true
+			}
+
 			fmt.Fprintf(tw, "%s\t%s\n", derefString(secret.Name), derefString(secret.ARN))
 		}
-
-		hasSecrets = true
 	}
 
 	if !hasSecrets {
-		_ = tw.Flush()
-
 		_, _ = fmt.Fprintln(os.Stderr, "No secrets found.")
 
 		return nil

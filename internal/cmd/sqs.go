@@ -51,12 +51,26 @@ func runListQueues(ctx context.Context) error {
 
 // listQueues lists SQS queues using the provided API client.
 func listQueues(ctx context.Context, api sqsListAPI) error {
-	output, err := api.ListQueues(ctx, &sqs.ListQueuesInput{})
-	if err != nil {
-		return fmt.Errorf("listing SQS queues: %w", err)
+	var allQueueUrls []string
+
+	input := &sqs.ListQueuesInput{}
+
+	for {
+		output, err := api.ListQueues(ctx, input)
+		if err != nil {
+			return fmt.Errorf("listing SQS queues: %w", err)
+		}
+
+		allQueueUrls = append(allQueueUrls, output.QueueUrls...)
+
+		if output.NextToken == nil || *output.NextToken == "" {
+			break
+		}
+
+		input.NextToken = output.NextToken
 	}
 
-	if len(output.QueueUrls) == 0 {
+	if len(allQueueUrls) == 0 {
 		_, _ = fmt.Fprintln(os.Stderr, "No SQS queues found.")
 
 		return nil
@@ -66,7 +80,7 @@ func listQueues(ctx context.Context, api sqsListAPI) error {
 
 	fmt.Fprint(tw, "QUEUE URL\n")
 
-	for _, url := range output.QueueUrls {
+	for _, url := range allQueueUrls {
 		fmt.Fprintf(tw, "%s\n", url)
 	}
 
