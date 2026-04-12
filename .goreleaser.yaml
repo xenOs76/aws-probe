@@ -31,7 +31,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X github.com/xenos76/aws-probe/cmd.Version={{.Version}}
+      - -s -w -X github.com/xenos76/aws-probe/internal/cmd.Version={{.Version}}
 
 archives:
   - name_template: >-

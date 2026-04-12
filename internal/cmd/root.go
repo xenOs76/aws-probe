@@ -1,8 +1,19 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 )
+
+var DefaultAWSRegion = func() string {
+	if region := os.Getenv("AWS_DEFAULT_REGION"); region != "" {
+		return region
+	}
+	return "eu-central-1"
+}()
+
+var Version = "dev"
 
 // newRootCmd creates the top-level aws-probe command.
 func newRootCmd() *cobra.Command {
@@ -15,10 +26,14 @@ AWS APIs and display useful information about your account,
 resources, and configuration.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		Version:       Version,
 	}
 
 	rootCmd.AddCommand(newWhoamiCmd())
-	rootCmd.AddCommand(newListCmd())
+	rootCmd.AddCommand(newS3Cmd())
+	rootCmd.AddCommand(newSqsCmd())
+	rootCmd.AddCommand(newSecretsCmd())
+	rootCmd.AddCommand(newMskCmd())
 
 	return rootCmd
 }
