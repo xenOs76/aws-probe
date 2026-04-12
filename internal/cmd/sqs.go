@@ -57,7 +57,7 @@ func listQueues(ctx context.Context, api sqsListAPI) error {
 	}
 
 	if len(output.QueueUrls) == 0 {
-		fmt.Fprintln(os.Stderr, "No SQS queues found.")
+		_, _ = fmt.Fprintln(os.Stderr, "No SQS queues found.")
 
 		return nil
 	}

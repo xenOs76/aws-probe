@@ -7,6 +7,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/aws/aws-sdk-go-v2/service/kafka"
+	kafkatypes "github.com/aws/aws-sdk-go-v2/service/kafka/types"
 	"github.com/spf13/cobra"
 )
 
@@ -79,13 +80,26 @@ func runListTopics(ctx context.Context, clusterArn string) error {
 
 // listClusters lists MSK clusters using the provided API client.
 func listClusters(ctx context.Context, api kafkaListClustersAPI) error {
-	output, err := api.ListClustersV2(ctx, &kafka.ListClustersV2Input{})
-	if err != nil {
-		return fmt.Errorf("listing MSK clusters: %w", err)
+	var allClusters []kafkatypes.Cluster
+
+	input := &kafka.ListClustersV2Input{}
+	for {
+		output, err := api.ListClustersV2(ctx, input)
+		if err != nil {
+			return fmt.Errorf("listing MSK clusters: %w", err)
+		}
+
+		allClusters = append(allClusters, output.ClusterInfoList...)
+
+		if output.NextToken == nil || *output.NextToken == "" {
+			break
+		}
+
+		input.NextToken = output.NextToken
 	}
 
-	if len(output.ClusterInfoList) == 0 {
-		fmt.Fprintln(os.Stderr, "No MSK clusters found.")
+	if len(allClusters) == 0 {
+		_, _ = fmt.Fprintln(os.Stderr, "No MSK clusters found.")
 
 		return nil
 	}
@@ -94,7 +108,7 @@ func listClusters(ctx context.Context, api kafkaListClustersAPI) error {
 
 	fmt.Fprint(tw, "CLUSTER NAME\tARN\tSTATUS\n")
 
-	for _, cluster := range output.ClusterInfoList {
+	for _, cluster := range allClusters {
 		fmt.Fprintf(tw, "%s\t%s\t%s\n",
 			derefString(cluster.ClusterName),
 			derefString(cluster.ClusterArn),
@@ -107,15 +121,29 @@ func listClusters(ctx context.Context, api kafkaListClustersAPI) error {
 
 // listTopics lists MSK topics for a given cluster using the provided API client.
 func listTopics(ctx context.Context, clusterArn string, api kafkaListTopicsAPI) error {
-	output, err := api.ListTopics(ctx, &kafka.ListTopicsInput{
+	var allTopics []kafkatypes.TopicInfo
+
+	input := &kafka.ListTopicsInput{
 		ClusterArn: &clusterArn,
-	})
-	if err != nil {
-		return fmt.Errorf("listing MSK topics: %w", err)
 	}
 
-	if len(output.Topics) == 0 {
-		fmt.Fprintln(os.Stderr, "No topics found.")
+	for {
+		output, err := api.ListTopics(ctx, input)
+		if err != nil {
+			return fmt.Errorf("listing MSK topics: %w", err)
+		}
+
+		allTopics = append(allTopics, output.Topics...)
+
+		if output.NextToken == nil || *output.NextToken == "" {
+			break
+		}
+
+		input.NextToken = output.NextToken
+	}
+
+	if len(allTopics) == 0 {
+		_, _ = fmt.Fprintln(os.Stderr, "No topics found.")
 
 		return nil
 	}
@@ -124,7 +152,7 @@ func listTopics(ctx context.Context, clusterArn string, api kafkaListTopicsAPI) 
 
 	fmt.Fprint(tw, "TOPIC NAME\tPARTITIONS\tREPLICATION\n")
 
-	for _, topic := range output.Topics {
+	for _, topic := range allTopics {
 		fmt.Fprintf(tw, "%s\t%d\t%d\n",
 			derefString(topic.TopicName),
 			derefInt32(topic.PartitionCount),

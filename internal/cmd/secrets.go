@@ -51,23 +51,34 @@ func runListSecrets(ctx context.Context) error {
 
 // listSecrets lists secrets using the provided API client.
 func listSecrets(ctx context.Context, api secretsListAPI) error {
-	output, err := api.ListSecrets(ctx, &secretsmanager.ListSecretsInput{})
-	if err != nil {
-		return fmt.Errorf("listing secrets: %w", err)
-	}
-
-	if len(output.SecretList) == 0 {
-		fmt.Fprintln(os.Stderr, "No secrets found.")
-
-		return nil
-	}
+	paginator := secretsmanager.NewListSecretsPaginator(api, &secretsmanager.ListSecretsInput{})
 
 	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 
 	fmt.Fprint(tw, "NAME\tARN\n")
 
-	for _, secret := range output.SecretList {
-		fmt.Fprintf(tw, "%s\t%s\n", derefString(secret.Name), derefString(secret.ARN))
+	hasSecrets := false
+
+	for paginator.HasMorePages() {
+		output, err := paginator.NextPage(ctx)
+		if err != nil {
+			_ = tw.Flush()
+			return fmt.Errorf("listing secrets: %w", err)
+		}
+
+		for _, secret := range output.SecretList {
+			fmt.Fprintf(tw, "%s\t%s\n", derefString(secret.Name), derefString(secret.ARN))
+		}
+
+		hasSecrets = true
+	}
+
+	if !hasSecrets {
+		_ = tw.Flush()
+
+		_, _ = fmt.Fprintln(os.Stderr, "No secrets found.")
+
+		return nil
 	}
 
 	return tw.Flush()

@@ -57,7 +57,7 @@ func listBuckets(ctx context.Context, api s3ListAPI) error {
 	}
 
 	if len(output.Buckets) == 0 {
-		fmt.Fprintln(os.Stderr, "No S3 buckets found.")
+		_, _ = fmt.Fprintln(os.Stderr, "No S3 buckets found.")
 
 		return nil
 	}

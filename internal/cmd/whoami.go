@@ -50,7 +50,7 @@ func runWhoami(ctx context.Context, api stsCallerIdentityAPI) error {
 	output, err := api.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	if err != nil {
 		if IsCredentialError(err) {
-			fmt.Fprint(os.Stderr, noCredentialsMessage)
+			printCredentialsMessage()
 
 			return nil
 		}
@@ -68,7 +68,7 @@ func runWhoami(ctx context.Context, api stsCallerIdentityAPI) error {
 		fmt.Fprintf(os.Stderr, "Service Account: %s\n", auth.ServiceAccount)
 	}
 
-	fmt.Fprintln(os.Stderr)
+	_, _ = fmt.Fprintln(os.Stderr)
 
 	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 

@@ -199,7 +199,7 @@ func TestListSecrets(t *testing.T) {
 		{
 			name:    "empty list",
 			client:  &mockSecretsListClient{output: &secretsmanager.ListSecretsOutput{}},
-			wantOut: "",
+			wantOut: "NAME  ARN\n",
 		},
 		{
 			name:    "API error",

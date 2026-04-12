@@ -66,12 +66,16 @@ func IsCredentialError(err error) bool {
 
 // LoadAWSConfig loads the AWS configuration for the given context.
 func LoadAWSConfig(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
-	options := []func(*config.LoadOptions) error{
-		config.WithRegion(DefaultAWSRegion),
+	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
+	if err != nil {
+		return cfg, err
 	}
-	options = append(options, optFns...)
 
-	return config.LoadDefaultConfig(ctx, options...)
+	if cfg.Region == "" {
+		cfg.Region = DefaultAWSRegion
+	}
+
+	return cfg, nil
 }
 
 // EnsureCredentials verifies that AWS credentials are available.
@@ -79,12 +83,17 @@ func EnsureCredentials() error {
 	auth := DetectAuthMethod()
 
 	if auth.Type == AuthMethodUnknown {
-		fmt.Fprint(os.Stderr, noCredentialsMessage)
+		printCredentialsMessage()
 
 		return errors.New("checking credentials: no credentials available")
 	}
 
 	return nil
+}
+
+// printCredentialsMessage prints the no credentials message to stderr.
+func printCredentialsMessage() {
+	_, _ = fmt.Fprint(os.Stderr, noCredentialsMessage)
 }
 
 // DetectAuthMethod detects the current AWS authentication method based on environment variables.
