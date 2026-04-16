@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kafka"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
@@ -36,6 +37,15 @@ type s3ListAPI interface {
 	) (*s3.ListBucketsOutput, error)
 }
 
+// s3ListObjectsAPI defines the interface for listing S3 objects.
+type s3ListObjectsAPI interface {
+	ListObjectsV2(
+		ctx context.Context,
+		params *s3.ListObjectsV2Input,
+		optFns ...func(*s3.Options),
+	) (*s3.ListObjectsV2Output, error)
+}
+
 // kafkaListClustersAPI defines the interface for listing MSK clusters.
 type kafkaListClustersAPI interface {
 	ListClustersV2(
@@ -54,8 +64,35 @@ type kafkaListTopicsAPI interface {
 	) (*kafka.ListTopicsOutput, error)
 }
 
+// snsListTopicsAPI defines the interface for listing SNS topics.
+type snsListTopicsAPI interface {
+	ListTopics(
+		ctx context.Context,
+		params *sns.ListTopicsInput,
+		optFns ...func(*sns.Options),
+	) (*sns.ListTopicsOutput, error)
+}
+
+// snsListSubscriptionsAPI defines the interface for listing SNS subscriptions.
+type snsListSubscriptionsAPI interface {
+	ListSubscriptionsByTopic(
+		ctx context.Context,
+		params *sns.ListSubscriptionsByTopicInput,
+		optFns ...func(*sns.Options),
+	) (*sns.ListSubscriptionsByTopicOutput, error)
+}
+
 // derefInt32 dereferences an int32 pointer, returning 0 if nil.
 func derefInt32(i *int32) int32 {
+	if i == nil {
+		return 0
+	}
+
+	return *i
+}
+
+// derefInt64 dereferences an int64 pointer, returning 0 if nil.
+func derefInt64(i *int64) int64 {
 	if i == nil {
 		return 0
 	}
