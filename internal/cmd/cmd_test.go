@@ -13,8 +13,7 @@ func TestNewS3Cmd(t *testing.T) {
 	require.NotNil(t, cmd)
 	assert.Equal(t, "s3", cmd.Use)
 	assert.NotNil(t, cmd.Commands())
-	assert.Len(t, cmd.Commands(), 1)
-	assert.Equal(t, "list-buckets", cmd.Commands()[0].Use)
+	assert.Len(t, cmd.Commands(), 2)
 }
 
 func TestNewListBucketsCmd(t *testing.T) {
@@ -23,6 +22,15 @@ func TestNewListBucketsCmd(t *testing.T) {
 	require.NotNil(t, cmd)
 	assert.Equal(t, "list-buckets", cmd.Use)
 	assert.NotNil(t, cmd.RunE)
+}
+
+func TestNewListBucketCmd(t *testing.T) {
+	cmd := newListBucketCmd()
+
+	require.NotNil(t, cmd)
+	assert.Equal(t, "list-bucket [bucket-name] [path]", cmd.Use)
+	assert.NotNil(t, cmd.RunE)
+	assert.NotNil(t, cmd.Flags().Lookup("recursive"))
 }
 
 func TestNewSqsCmd(t *testing.T) {
@@ -92,5 +100,5 @@ func TestNewRootCmd(t *testing.T) {
 	require.NotNil(t, cmd)
 	assert.Equal(t, "aws-probe", cmd.Use)
 	assert.NotNil(t, cmd.Commands())
-	assert.Len(t, cmd.Commands(), 5)
+	assert.Len(t, cmd.Commands(), 6)
 }

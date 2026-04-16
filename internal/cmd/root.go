@@ -34,6 +34,7 @@ resources, and configuration.`,
 	rootCmd.AddCommand(newSqsCmd())
 	rootCmd.AddCommand(newSecretsCmd())
 	rootCmd.AddCommand(newMskCmd())
+	rootCmd.AddCommand(newSnsCmd())
 
 	return rootCmd
 }

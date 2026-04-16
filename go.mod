@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/kafka v1.49.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.99.0
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.5
+	github.com/aws/aws-sdk-go-v2/service/sns v1.39.15
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.25
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.10
 	github.com/spf13/cobra v1.10.2

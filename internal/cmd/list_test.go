@@ -34,6 +34,19 @@ func (m *mockS3ListBucketsClient) ListBuckets(
 	return m.output, m.err
 }
 
+type mockS3ListObjectsClient struct {
+	output *s3.ListObjectsV2Output
+	err    error
+}
+
+func (m *mockS3ListObjectsClient) ListObjectsV2(
+	_ context.Context,
+	_ *s3.ListObjectsV2Input,
+	_ ...func(*s3.Options),
+) (*s3.ListObjectsV2Output, error) {
+	return m.output, m.err
+}
+
 func TestListBuckets(t *testing.T) {
 	createdAt := time.Date(2025, 3, 15, 10, 30, 0, 0, time.UTC)
 
@@ -96,6 +109,157 @@ func TestListBuckets(t *testing.T) {
 			assert.Equal(t, tt.wantOut, out.stdout)
 		})
 	}
+}
+
+func TestStripPrefix(t *testing.T) {
+	tests := []struct {
+		name   string
+		key    string
+		prefix string
+		want   string
+	}{
+		{
+			name:   "empty prefix returns key unchanged",
+			key:    "folder/file.txt",
+			prefix: "",
+			want:   "folder/file.txt",
+		},
+		{
+			name:   "strips matching prefix",
+			key:    "k3s-argo/backups/",
+			prefix: "k3s-argo/",
+			want:   "backups/",
+		},
+		{
+			name:   "prefix not found returns key unchanged",
+			key:    "other/data.txt",
+			prefix: "k3s-argo/",
+			want:   "other/data.txt",
+		},
+		{
+			name:   "key equals prefix returns empty string",
+			key:    "k3s-argo/",
+			prefix: "k3s-argo/",
+			want:   "",
+		},
+		{
+			name:   "nested prefix",
+			key:    "a/b/c/d.txt",
+			prefix: "a/b/",
+			want:   "c/d.txt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripPrefix(tt.key, tt.prefix)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+//nolint:revive // function length acceptable for test clarity
+func TestListBucket(t *testing.T) {
+	modifiedAt := time.Date(2025, 3, 15, 10, 30, 0, 0, time.UTC)
+
+	t.Run("lists objects with delimiter", func(t *testing.T) {
+		client := &mockS3ListObjectsClient{
+			output: &s3.ListObjectsV2Output{
+				CommonPrefixes: []s3types.CommonPrefix{
+					{Prefix: aws.String("folder/")},
+				},
+				Contents: []s3types.Object{
+					{Key: aws.String("README.md"), LastModified: &modifiedAt, Size: aws.Int64(1024)},
+				},
+			},
+		}
+
+		out, err := captureCmdOutput(t, func() error {
+			return listBucket(context.Background(), "my-bucket", "", false, client)
+		})
+
+		require.NoError(t, err)
+		assert.Contains(t, out.stdout, "KEY")
+		assert.Contains(t, out.stdout, "folder/")
+		assert.Contains(t, out.stdout, "README.md")
+	})
+
+	t.Run("lists objects recursively", func(t *testing.T) {
+		client := &mockS3ListObjectsClient{
+			output: &s3.ListObjectsV2Output{
+				Contents: []s3types.Object{
+					{Key: aws.String("folder/file.txt"), LastModified: &modifiedAt, Size: aws.Int64(512)},
+					{Key: aws.String("data/backup.tar.gz"), LastModified: &modifiedAt, Size: aws.Int64(1048576)},
+				},
+			},
+		}
+
+		out, err := captureCmdOutput(t, func() error {
+			return listBucket(context.Background(), "my-bucket", "", true, client)
+		})
+
+		require.NoError(t, err)
+		assert.Contains(t, out.stdout, "folder/file.txt")
+		assert.Contains(t, out.stdout, "data/backup.tar.gz")
+	})
+
+	t.Run("empty list", func(t *testing.T) {
+		client := &mockS3ListObjectsClient{
+			output: &s3.ListObjectsV2Output{},
+		}
+
+		_, err := captureCmdOutput(t, func() error {
+			return listBucket(context.Background(), "my-bucket", "", false, client)
+		})
+
+		require.NoError(t, err)
+	})
+
+	t.Run("API error", func(t *testing.T) {
+		client := &mockS3ListObjectsClient{err: errors.New("access denied")}
+
+		err := listBucket(context.Background(), "my-bucket", "", false, client)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("strips prefix from CommonPrefixes", func(t *testing.T) {
+		client := &mockS3ListObjectsClient{
+			output: &s3.ListObjectsV2Output{
+				CommonPrefixes: []s3types.CommonPrefix{
+					{Prefix: aws.String("k3s-argo/backups/")},
+					{Prefix: aws.String("k3s-argo/configs/")},
+				},
+			},
+		}
+
+		out, err := captureCmdOutput(t, func() error {
+			return listBucket(context.Background(), "my-bucket", "k3s-argo/", false, client)
+		})
+
+		require.NoError(t, err)
+		assert.Contains(t, out.stdout, "backups/")
+		assert.Contains(t, out.stdout, "configs/")
+		assert.NotContains(t, out.stdout, "k3s-argo/")
+	})
+
+	t.Run("strips prefix from Contents", func(t *testing.T) {
+		client := &mockS3ListObjectsClient{
+			output: &s3.ListObjectsV2Output{
+				Contents: []s3types.Object{
+					{Key: aws.String("k3s-argo/config.yaml"), LastModified: &modifiedAt, Size: aws.Int64(512)},
+				},
+			},
+		}
+
+		out, err := captureCmdOutput(t, func() error {
+			return listBucket(context.Background(), "my-bucket", "k3s-argo/", false, client)
+		})
+
+		require.NoError(t, err)
+		assert.Contains(t, out.stdout, "config.yaml")
+		assert.NotContains(t, out.stdout, "k3s-argo/")
+	})
 }
 
 type mockSQSListQueuesClient struct {
