@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/service/kafka"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
@@ -46,6 +47,33 @@ type s3ListObjectsAPI interface {
 	) (*s3.ListObjectsV2Output, error)
 }
 
+// s3HeadObjectAPI defines the interface for getting S3 object metadata.
+type s3HeadObjectAPI interface {
+	HeadObject(
+		ctx context.Context,
+		params *s3.HeadObjectInput,
+		optFns ...func(*s3.Options),
+	) (*s3.HeadObjectOutput, error)
+}
+
+// kmsGetKeyAPI defines the interface for describing KMS keys.
+type kmsGetKeyAPI interface {
+	DescribeKey(
+		ctx context.Context,
+		params *kms.DescribeKeyInput,
+		optFns ...func(*kms.Options),
+	) (*kms.DescribeKeyOutput, error)
+}
+
+// kmsListAliasesAPI defines the interface for listing KMS aliases.
+type kmsListAliasesAPI interface {
+	ListAliases(
+		ctx context.Context,
+		params *kms.ListAliasesInput,
+		optFns ...func(*kms.Options),
+	) (*kms.ListAliasesOutput, error)
+}
+
 // kafkaListClustersAPI defines the interface for listing MSK clusters.
 type kafkaListClustersAPI interface {
 	ListClustersV2(
@@ -62,6 +90,15 @@ type kafkaListTopicsAPI interface {
 		params *kafka.ListTopicsInput,
 		optFns ...func(*kafka.Options),
 	) (*kafka.ListTopicsOutput, error)
+}
+
+// kafkaGetBrokersAPI defines the interface for getting bootstrap brokers.
+type kafkaGetBrokersAPI interface {
+	GetBootstrapBrokers(
+		ctx context.Context,
+		params *kafka.GetBootstrapBrokersInput,
+		optFns ...func(*kafka.Options),
+	) (*kafka.GetBootstrapBrokersOutput, error)
 }
 
 // snsListTopicsAPI defines the interface for listing SNS topics.
