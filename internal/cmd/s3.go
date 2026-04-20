@@ -21,6 +21,7 @@ func newS3Cmd() *cobra.Command {
 
 	cmd.AddCommand(newListBucketsCmd())
 	cmd.AddCommand(newListBucketCmd())
+	cmd.AddCommand(newGetObjectMetadataCmd())
 
 	return cmd
 }

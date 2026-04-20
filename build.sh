@@ -4,4 +4,4 @@ set -e
 
 test -d dist || mkdir dist
 
-go build -o dist/aws-probe
+CGO_ENABLED=0 go build -o dist/aws-probe
