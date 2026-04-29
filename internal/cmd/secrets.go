@@ -37,13 +37,9 @@ func newListSecretsCmd() *cobra.Command {
 
 // runListSecrets executes the list-secrets command.
 func runListSecrets(ctx context.Context) error {
-	if err := EnsureCredentials(); err != nil {
-		return err
-	}
-
-	cfg, err := LoadAWSConfig(ctx)
+	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+		return err
 	}
 
 	return listSecrets(ctx, secretsmanager.NewFromConfig(cfg))

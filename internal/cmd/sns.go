@@ -47,26 +47,18 @@ func newSnsListSubscriptionsCmd() *cobra.Command {
 }
 
 func runSnsListTopics(ctx context.Context) error {
-	if err := EnsureCredentials(); err != nil {
-		return err
-	}
-
-	cfg, err := LoadAWSConfig(ctx)
+	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+		return err
 	}
 
 	return listSnsTopics(ctx, sns.NewFromConfig(cfg))
 }
 
 func runSnsListSubscriptions(ctx context.Context, topicArn string) error {
-	if err := EnsureCredentials(); err != nil {
-		return err
-	}
-
-	cfg, err := LoadAWSConfig(ctx)
+	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+		return err
 	}
 
 	return listSnsSubscriptions(ctx, topicArn, sns.NewFromConfig(cfg))

@@ -91,6 +91,20 @@ func EnsureCredentials() error {
 	return nil
 }
 
+// PrepareAWSConfig combines EnsureCredentials and LoadAWSConfig.
+func PrepareAWSConfig(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
+	if err := EnsureCredentials(); err != nil {
+		return aws.Config{}, err
+	}
+
+	cfg, err := LoadAWSConfig(ctx, optFns...)
+	if err != nil {
+		return cfg, fmt.Errorf("loading AWS config: %w", err)
+	}
+
+	return cfg, nil
+}
+
 // printCredentialsMessage prints the no credentials message to stderr.
 func printCredentialsMessage() {
 	_, _ = fmt.Fprint(os.Stderr, noCredentialsMessage)

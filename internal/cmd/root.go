@@ -10,6 +10,7 @@ var DefaultAWSRegion = func() string {
 	if region := os.Getenv("AWS_DEFAULT_REGION"); region != "" {
 		return region
 	}
+
 	return "eu-central-1"
 }()
 

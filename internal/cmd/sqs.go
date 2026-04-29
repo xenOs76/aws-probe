@@ -37,13 +37,9 @@ func newListQueuesCmd() *cobra.Command {
 
 // runListQueues executes the list-queues command.
 func runListQueues(ctx context.Context) error {
-	if err := EnsureCredentials(); err != nil {
-		return err
-	}
-
-	cfg, err := LoadAWSConfig(ctx)
+	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+		return err
 	}
 
 	return listQueues(ctx, sqs.NewFromConfig(cfg))
