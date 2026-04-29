@@ -14,6 +14,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const metadataFieldFormat = "%-24s%s\n"
+
 func newGetObjectMetadataCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "get-object-metadata [bucket-name] [key]",
@@ -29,13 +31,9 @@ and encryption details.`,
 }
 
 func runGetObjectMetadata(ctx context.Context, bucket, key string) error {
-	if err := EnsureCredentials(); err != nil {
-		return err
-	}
-
-	cfg, err := LoadAWSConfig(ctx)
+	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+		return err
 	}
 
 	s3Client := s3.NewFromConfig(cfg)
@@ -76,20 +74,20 @@ func getObjectMetadata(
 
 func displayGeneralInfo(tw *tabwriter.Writer, key string, output *s3.HeadObjectOutput) {
 	fmt.Fprintln(tw, "\nGENERAL")
-	fmt.Fprintf(tw, "%-24s%s\n", "KEY", key)
-	fmt.Fprintf(tw, "%-24s%s\n", "SIZE", formatSize(derefInt64(output.ContentLength)))
-	fmt.Fprintf(tw, "%-24s%s\n", "ETAG", formatETag(output.ETag))
+	fmt.Fprintf(tw, metadataFieldFormat, "KEY", key)
+	fmt.Fprintf(tw, metadataFieldFormat, "SIZE", formatSize(derefInt64(output.ContentLength)))
+	fmt.Fprintf(tw, metadataFieldFormat, "ETAG", formatETag(output.ETag))
 
 	if output.DeleteMarker != nil && *output.DeleteMarker {
-		fmt.Fprintf(tw, "%-24s%s\n", "DELETE MARKER", "true")
+		fmt.Fprintf(tw, metadataFieldFormat, "DELETE MARKER", "true")
 	}
 
 	if output.Expiration != nil {
-		fmt.Fprintf(tw, "%-24s%s\n", "EXPIRATION", derefString(output.Expiration))
+		fmt.Fprintf(tw, metadataFieldFormat, "EXPIRATION", derefString(output.Expiration))
 	}
 
 	if output.Restore != nil {
-		fmt.Fprintf(tw, "%-24s%s\n", "RESTORE", derefString(output.Restore))
+		fmt.Fprintf(tw, metadataFieldFormat, "RESTORE", derefString(output.Restore))
 	}
 }
 
@@ -104,11 +102,11 @@ func displayContentInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmtField(tw, "ACCEPT-RANGES", output.AcceptRanges)
 
 	if output.Expires != nil {
-		fmt.Fprintf(tw, "%-24s%s\n", "EXPIRES", output.Expires.Format(time.RFC1123))
+		fmt.Fprintf(tw, metadataFieldFormat, "EXPIRES", output.Expires.Format(time.RFC1123))
 	}
 
 	if output.ExpiresString != nil {
-		fmt.Fprintf(tw, "%-24s%s\n", "EXPIRES (STRING)", derefString(output.ExpiresString))
+		fmt.Fprintf(tw, metadataFieldFormat, "EXPIRES (STRING)", derefString(output.ExpiresString))
 	}
 }
 
@@ -116,11 +114,11 @@ func displayStorageInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmt.Fprintln(tw, "\nSTORAGE")
 
 	if output.StorageClass != "" {
-		fmt.Fprintf(tw, "%-24s%s\n", "STORAGE CLASS", string(output.StorageClass))
+		fmt.Fprintf(tw, metadataFieldFormat, "STORAGE CLASS", string(output.StorageClass))
 	}
 
 	if output.LastModified != nil {
-		fmt.Fprintf(tw, "%-24s%s\n", "LAST MODIFIED", formatTime(output.LastModified))
+		fmt.Fprintf(tw, metadataFieldFormat, "LAST MODIFIED", formatTime(output.LastModified))
 	}
 
 	if output.PartsCount != nil {
@@ -143,9 +141,9 @@ func displayEncryptionInfo(
 
 	sse := string(output.ServerSideEncryption)
 	if sse == "" {
-		fmt.Fprintf(tw, "%-24s%s\n", "SERVER-SIDE ENCRYPTION", "None")
+		fmt.Fprintf(tw, metadataFieldFormat, "SERVER-SIDE ENCRYPTION", "None")
 	} else {
-		fmt.Fprintf(tw, "%-24s%s\n", "SERVER-SIDE ENCRYPTION", sse)
+		fmt.Fprintf(tw, metadataFieldFormat, "SERVER-SIDE ENCRYPTION", sse)
 	}
 
 	if output.BucketKeyEnabled != nil {
@@ -157,16 +155,16 @@ func displayEncryptionInfo(
 
 	if output.SSEKMSKeyId != nil {
 		kmsKeyID := derefString(output.SSEKMSKeyId)
-		fmt.Fprintf(tw, "%-24s%s\n", "SSE-KMS KEY ID", kmsKeyID)
+		fmt.Fprintf(tw, metadataFieldFormat, "SSE-KMS KEY ID", kmsKeyID)
 
 		kmsKeyARN, err := getKMSKeyARN(ctx, kmsClient, kmsKeyID)
 		if err == nil && kmsKeyARN != "" {
-			fmt.Fprintf(tw, "%-24s%s\n", "SSE-KMS KEY ARN", kmsKeyARN)
+			fmt.Fprintf(tw, metadataFieldFormat, "SSE-KMS KEY ARN", kmsKeyARN)
 		}
 
 		keyName, err := getKMSKeyName(ctx, kmsAliasesClient, kmsKeyID)
 		if err == nil && keyName != "" {
-			fmt.Fprintf(tw, "%-24s%s\n", "SSE-KMS KEY NAME", keyName)
+			fmt.Fprintf(tw, metadataFieldFormat, "SSE-KMS KEY NAME", keyName)
 		}
 	}
 }
@@ -177,7 +175,7 @@ func displayVersioningInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 
 	replicationStatus := string(output.ReplicationStatus)
 	if replicationStatus != "" {
-		fmt.Fprintf(tw, "%-24s%s\n", "REPLICATION STATUS", replicationStatus)
+		fmt.Fprintf(tw, metadataFieldFormat, "REPLICATION STATUS", replicationStatus)
 	}
 }
 
@@ -193,16 +191,16 @@ func displayObjectLockInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmt.Fprintln(tw, "\nOBJECT LOCK")
 
 	if output.ObjectLockLegalHoldStatus != "" {
-		fmt.Fprintf(tw, "%-24s%s\n", "LEGAL HOLD STATUS",
+		fmt.Fprintf(tw, metadataFieldFormat, "LEGAL HOLD STATUS",
 			string(output.ObjectLockLegalHoldStatus))
 	}
 
 	if output.ObjectLockMode != "" {
-		fmt.Fprintf(tw, "%-24s%s\n", "LOCK MODE", string(output.ObjectLockMode))
+		fmt.Fprintf(tw, metadataFieldFormat, "LOCK MODE", string(output.ObjectLockMode))
 	}
 
 	if output.ObjectLockRetainUntilDate != nil {
-		fmt.Fprintf(tw, "%-24s%s\n", "RETAIN UNTIL DATE",
+		fmt.Fprintf(tw, metadataFieldFormat, "RETAIN UNTIL DATE",
 			output.ObjectLockRetainUntilDate.Format("2006-01-02 15:04:05 MST"))
 	}
 }
@@ -223,7 +221,7 @@ func displayOtherInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmtField(tw, "WEBSITE REDIRECT", output.WebsiteRedirectLocation)
 
 	if output.ChecksumType != "" {
-		fmt.Fprintf(tw, "%-24s%s\n", "CHECKSUM TYPE", string(output.ChecksumType))
+		fmt.Fprintf(tw, metadataFieldFormat, "CHECKSUM TYPE", string(output.ChecksumType))
 	}
 
 	fmtField(tw, "CHECKSUM CRC32", output.ChecksumCRC32)
@@ -247,7 +245,7 @@ func displayCustomMetadata(tw *tabwriter.Writer, metadata map[string]string) {
 
 func fmtField(tw *tabwriter.Writer, label string, value *string) {
 	if value != nil && *value != "" {
-		fmt.Fprintf(tw, "%-24s%s\n", label, *value)
+		fmt.Fprintf(tw, metadataFieldFormat, label, *value)
 	}
 }
 

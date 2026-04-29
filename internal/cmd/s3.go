@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/spf13/cobra"
 )
 
@@ -40,13 +41,9 @@ func newListBucketsCmd() *cobra.Command {
 
 // runListBuckets executes the list-buckets command.
 func runListBuckets(ctx context.Context) error {
-	if err := EnsureCredentials(); err != nil {
-		return err
-	}
-
-	cfg, err := LoadAWSConfig(ctx)
+	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+		return err
 	}
 
 	return listBuckets(ctx, s3.NewFromConfig(cfg))
@@ -110,13 +107,9 @@ func newListBucketCmd() *cobra.Command {
 
 // runListBucket executes the list-bucket command.
 func runListBucket(ctx context.Context, bucket, path string, recursive bool) error {
-	if err := EnsureCredentials(); err != nil {
-		return err
-	}
-
-	cfg, err := LoadAWSConfig(ctx)
+	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+		return err
 	}
 
 	return listBucket(ctx, bucket, path, recursive, s3.NewFromConfig(cfg))
@@ -160,28 +153,8 @@ func listBucket(ctx context.Context, bucket, prefix string, recursive bool, api 
 			hasContent = true
 		}
 
-		for _, cp := range output.CommonPrefixes {
-			if cp.Prefix != nil {
-				displayKey := stripPrefix(derefString(cp.Prefix), prefix)
-				fmt.Fprintf(tw, "%s\t-\t0\n", displayKey)
-			}
-		}
-
-		for _, obj := range output.Contents {
-			modified := ""
-			if obj.LastModified != nil {
-				modified = obj.LastModified.Format("2006-01-02 15:04:05")
-			}
-
-			size := formatSize(derefInt64(obj.Size))
-			displayKey := stripPrefix(derefString(obj.Key), prefix)
-
-			fmt.Fprintf(tw, "%s\t%s\t%s\n",
-				displayKey,
-				modified,
-				size,
-			)
-		}
+		renderCommonPrefixes(tw, output.CommonPrefixes, prefix)
+		renderContents(tw, output.Contents, prefix)
 	}
 
 	if !hasContent {
@@ -217,4 +190,31 @@ func formatSize(size int64) string {
 	}
 
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
+}
+
+func renderCommonPrefixes(tw *tabwriter.Writer, prefixes []s3types.CommonPrefix, basePrefix string) {
+	for _, cp := range prefixes {
+		if cp.Prefix != nil {
+			displayKey := stripPrefix(derefString(cp.Prefix), basePrefix)
+			fmt.Fprintf(tw, "%s\t-\t0\n", displayKey)
+		}
+	}
+}
+
+func renderContents(tw *tabwriter.Writer, contents []s3types.Object, basePrefix string) {
+	for _, obj := range contents {
+		modified := ""
+		if obj.LastModified != nil {
+			modified = obj.LastModified.Format("2006-01-02 15:04:05")
+		}
+
+		size := formatSize(derefInt64(obj.Size))
+		displayKey := stripPrefix(derefString(obj.Key), basePrefix)
+
+		fmt.Fprintf(tw, "%s\t%s\t%s\n",
+			displayKey,
+			modified,
+			size,
+		)
+	}
 }

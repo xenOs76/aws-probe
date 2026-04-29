@@ -142,13 +142,9 @@ func newListTopicsCmd() *cobra.Command {
 
 // runListClusters executes the list-clusters command.
 func runListClusters(ctx context.Context) error {
-	if err := EnsureCredentials(); err != nil {
-		return err
-	}
-
-	cfg, err := LoadAWSConfig(ctx)
+	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+		return err
 	}
 
 	return listClusters(ctx, kafka.NewFromConfig(cfg))
@@ -156,13 +152,9 @@ func runListClusters(ctx context.Context) error {
 
 // runListTopics executes the list-topics command.
 func runListTopics(ctx context.Context, clusterArn string) error {
-	if err := EnsureCredentials(); err != nil {
-		return err
-	}
-
-	cfg, err := LoadAWSConfig(ctx)
+	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+		return err
 	}
 
 	return listTopics(ctx, clusterArn, kafka.NewFromConfig(cfg))
@@ -254,13 +246,9 @@ func listTopics(ctx context.Context, clusterArn string, api kafkaListTopicsAPI) 
 }
 
 func runProduce(ctx context.Context) error {
-	if err := EnsureCredentials(); err != nil {
-		return err
-	}
-
-	cfg, err := LoadAWSConfig(ctx)
+	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+		return err
 	}
 
 	brokers, err := resolveBrokers(ctx, kafka.NewFromConfig(cfg))
@@ -291,13 +279,9 @@ func runProduce(ctx context.Context) error {
 }
 
 func runConsume(ctx context.Context) error {
-	if err := EnsureCredentials(); err != nil {
-		return err
-	}
-
-	cfg, err := LoadAWSConfig(ctx)
+	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("loading AWS config: %w", err)
+		return err
 	}
 
 	brokers, err := resolveBrokers(ctx, kafka.NewFromConfig(cfg))
