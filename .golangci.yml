@@ -87,7 +87,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
-      - "vendor/*"
+      - "(^|.*/|\\\\)vendor/.*"
 
 formatters:
   enable:
