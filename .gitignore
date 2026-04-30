@@ -1,4 +1,5 @@
 dist
+.vscode
 cover.out 
 coverage.out
 .scannerwork

@@ -32,7 +32,7 @@ install() {
   echo "Detected architecture: $ARCH (binary: $BIN_ARCH)"
 
   # Get the latest release download URL
-  DOWNLOAD_URL=$(curl -sSL "https://api.github.com/repos/${REPO}/releases/latest" |
+  DOWNLOAD_URL=$(curl --proto "=https" --tlsv1.2 -sSf -L "https://api.github.com/repos/${REPO}/releases/latest" |
     grep "browser_download_url.*${BIN_ARCH}\.tar\.gz" |
     cut -d '"' -f 4)
 
@@ -79,4 +79,3 @@ fi
 
 install
 exit $?
-
