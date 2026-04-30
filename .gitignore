@@ -3,3 +3,4 @@ dist
 cover.out 
 coverage.out
 .scannerwork
+sonar-scanner.sh

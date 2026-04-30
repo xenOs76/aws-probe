@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
-// secretsListAPI defines the interface for listing secrets.
-type secretsListAPI interface {
+// secretsLister defines the interface for listing secrets.
+type secretsLister interface {
 	ListSecrets(
 		ctx context.Context,
 		params *secretsmanager.ListSecretsInput,
@@ -20,8 +20,8 @@ type secretsListAPI interface {
 	) (*secretsmanager.ListSecretsOutput, error)
 }
 
-// sqsListAPI defines the interface for listing SQS queues.
-type sqsListAPI interface {
+// sqsLister defines the interface for listing SQS queues.
+type sqsLister interface {
 	ListQueues(
 		ctx context.Context,
 		params *sqs.ListQueuesInput,
@@ -29,8 +29,8 @@ type sqsListAPI interface {
 	) (*sqs.ListQueuesOutput, error)
 }
 
-// s3ListAPI defines the interface for listing S3 buckets.
-type s3ListAPI interface {
+// s3Lister defines the interface for listing S3 buckets.
+type s3Lister interface {
 	ListBuckets(
 		ctx context.Context,
 		params *s3.ListBucketsInput,
@@ -38,8 +38,8 @@ type s3ListAPI interface {
 	) (*s3.ListBucketsOutput, error)
 }
 
-// s3ListObjectsAPI defines the interface for listing S3 objects.
-type s3ListObjectsAPI interface {
+// s3ObjectsLister defines the interface for listing S3 objects.
+type s3ObjectsLister interface {
 	ListObjectsV2(
 		ctx context.Context,
 		params *s3.ListObjectsV2Input,
@@ -47,8 +47,8 @@ type s3ListObjectsAPI interface {
 	) (*s3.ListObjectsV2Output, error)
 }
 
-// s3HeadObjectAPI defines the interface for getting S3 object metadata.
-type s3HeadObjectAPI interface {
+// s3ObjectHeader defines the interface for getting S3 object metadata.
+type s3ObjectHeader interface {
 	HeadObject(
 		ctx context.Context,
 		params *s3.HeadObjectInput,
@@ -56,8 +56,8 @@ type s3HeadObjectAPI interface {
 	) (*s3.HeadObjectOutput, error)
 }
 
-// kmsGetKeyAPI defines the interface for describing KMS keys.
-type kmsGetKeyAPI interface {
+// kmsKeyDescriber defines the interface for describing KMS keys.
+type kmsKeyDescriber interface {
 	DescribeKey(
 		ctx context.Context,
 		params *kms.DescribeKeyInput,
@@ -65,8 +65,8 @@ type kmsGetKeyAPI interface {
 	) (*kms.DescribeKeyOutput, error)
 }
 
-// kmsListAliasesAPI defines the interface for listing KMS aliases.
-type kmsListAliasesAPI interface {
+// kmsAliasesLister defines the interface for listing KMS aliases.
+type kmsAliasesLister interface {
 	ListAliases(
 		ctx context.Context,
 		params *kms.ListAliasesInput,
@@ -74,8 +74,8 @@ type kmsListAliasesAPI interface {
 	) (*kms.ListAliasesOutput, error)
 }
 
-// kafkaListClustersAPI defines the interface for listing MSK clusters.
-type kafkaListClustersAPI interface {
+// kafkaClustersLister defines the interface for listing MSK clusters.
+type kafkaClustersLister interface {
 	ListClustersV2(
 		ctx context.Context,
 		params *kafka.ListClustersV2Input,
@@ -83,8 +83,8 @@ type kafkaListClustersAPI interface {
 	) (*kafka.ListClustersV2Output, error)
 }
 
-// kafkaListTopicsAPI defines the interface for listing MSK topics.
-type kafkaListTopicsAPI interface {
+// kafkaTopicsLister defines the interface for listing MSK topics.
+type kafkaTopicsLister interface {
 	ListTopics(
 		ctx context.Context,
 		params *kafka.ListTopicsInput,
@@ -92,8 +92,8 @@ type kafkaListTopicsAPI interface {
 	) (*kafka.ListTopicsOutput, error)
 }
 
-// kafkaGetBrokersAPI defines the interface for getting bootstrap brokers.
-type kafkaGetBrokersAPI interface {
+// kafkaBrokersGetter defines the interface for getting bootstrap brokers.
+type kafkaBrokersGetter interface {
 	GetBootstrapBrokers(
 		ctx context.Context,
 		params *kafka.GetBootstrapBrokersInput,
@@ -101,8 +101,8 @@ type kafkaGetBrokersAPI interface {
 	) (*kafka.GetBootstrapBrokersOutput, error)
 }
 
-// snsListTopicsAPI defines the interface for listing SNS topics.
-type snsListTopicsAPI interface {
+// snsTopicsLister defines the interface for listing SNS topics.
+type snsTopicsLister interface {
 	ListTopics(
 		ctx context.Context,
 		params *sns.ListTopicsInput,
@@ -110,8 +110,8 @@ type snsListTopicsAPI interface {
 	) (*sns.ListTopicsOutput, error)
 }
 
-// snsListSubscriptionsAPI defines the interface for listing SNS subscriptions.
-type snsListSubscriptionsAPI interface {
+// snsSubscriptionsLister defines the interface for listing SNS subscriptions.
+type snsSubscriptionsLister interface {
 	ListSubscriptionsByTopic(
 		ctx context.Context,
 		params *sns.ListSubscriptionsByTopicInput,

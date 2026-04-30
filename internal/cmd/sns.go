@@ -64,7 +64,7 @@ func runSnsListSubscriptions(ctx context.Context, topicArn string) error {
 	return listSnsSubscriptions(ctx, topicArn, sns.NewFromConfig(cfg))
 }
 
-func listSnsTopics(ctx context.Context, api snsListTopicsAPI) error {
+func listSnsTopics(ctx context.Context, api snsTopicsLister) error {
 	paginator := sns.NewListTopicsPaginator(api, &sns.ListTopicsInput{})
 
 	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
@@ -99,7 +99,7 @@ func listSnsTopics(ctx context.Context, api snsListTopicsAPI) error {
 	return tw.Flush()
 }
 
-func listSnsSubscriptions(ctx context.Context, topicArn string, api snsListSubscriptionsAPI) error {
+func listSnsSubscriptions(ctx context.Context, topicArn string, api snsSubscriptionsLister) error {
 	paginator := sns.NewListSubscriptionsByTopicPaginator(api, &sns.ListSubscriptionsByTopicInput{
 		TopicArn: &topicArn,
 	})

@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// stsCallerIdentityAPI defines the interface for calling STS GetCallerIdentity.
-type stsCallerIdentityAPI interface {
+// stsIdentityGetter defines the interface for calling STS GetCallerIdentity.
+type stsIdentityGetter interface {
 	GetCallerIdentity(
 		ctx context.Context,
 		params *sts.GetCallerIdentityInput,
@@ -44,7 +44,7 @@ method used (EC2 role, EKS IRSA, SSO, etc.).`,
 }
 
 // runWhoami executes the whoami command.
-func runWhoami(ctx context.Context, api stsCallerIdentityAPI) error {
+func runWhoami(ctx context.Context, api stsIdentityGetter) error {
 	auth := DetectAuthMethod()
 
 	output, err := api.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})

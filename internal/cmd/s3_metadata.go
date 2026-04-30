@@ -46,9 +46,9 @@ func getObjectMetadata(
 	ctx context.Context,
 	bucket string,
 	key string,
-	s3Client s3HeadObjectAPI,
-	kmsClient kmsGetKeyAPI,
-	kmsAliasesClient kmsListAliasesAPI,
+	s3Client s3ObjectHeader,
+	kmsClient kmsKeyDescriber,
+	kmsAliasesClient kmsAliasesLister,
 ) error {
 	output, err := s3Client.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: &bucket,
@@ -134,8 +134,8 @@ func displayEncryptionInfo(
 	ctx context.Context,
 	tw *tabwriter.Writer,
 	output *s3.HeadObjectOutput,
-	kmsClient kmsGetKeyAPI,
-	kmsAliasesClient kmsListAliasesAPI,
+	kmsClient kmsKeyDescriber,
+	kmsAliasesClient kmsAliasesLister,
 ) {
 	fmt.Fprintln(tw, "\nENCRYPTION")
 
@@ -265,7 +265,7 @@ func formatTime(t *time.Time) string {
 	return t.Format("2006-01-02 15:04:05 MST")
 }
 
-func getKMSKeyARN(ctx context.Context, api kmsGetKeyAPI, keyID string) (string, error) {
+func getKMSKeyARN(ctx context.Context, api kmsKeyDescriber, keyID string) (string, error) {
 	input := &kms.DescribeKeyInput{
 		KeyId: &keyID,
 	}
@@ -282,7 +282,7 @@ func getKMSKeyARN(ctx context.Context, api kmsGetKeyAPI, keyID string) (string, 
 	return "", nil
 }
 
-func getKMSKeyName(ctx context.Context, api kmsListAliasesAPI, keyID string) (string, error) {
+func getKMSKeyName(ctx context.Context, api kmsAliasesLister, keyID string) (string, error) {
 	paginator := kms.NewListAliasesPaginator(api, &kms.ListAliasesInput{})
 
 	for paginator.HasMorePages() {

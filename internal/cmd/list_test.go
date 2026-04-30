@@ -52,7 +52,7 @@ func TestListBuckets(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		client  s3ListAPI
+		client  s3Lister
 		wantOut string
 		wantErr bool
 	}{
@@ -278,7 +278,7 @@ func (m *mockSQSListQueuesClient) ListQueues(
 func TestListQueues(t *testing.T) {
 	tests := []struct {
 		name    string
-		client  sqsListAPI
+		client  sqsLister
 		wantOut string
 		wantErr bool
 	}{
@@ -342,7 +342,7 @@ func (m *mockSecretsListClient) ListSecrets(
 func TestListSecrets(t *testing.T) {
 	tests := []struct {
 		name    string
-		client  secretsListAPI
+		client  secretsLister
 		wantOut string
 		wantErr bool
 	}{
@@ -406,7 +406,7 @@ func (m *mockKafkaListClustersClient) ListClustersV2(
 func TestListClusters(t *testing.T) {
 	tests := []struct {
 		name    string
-		client  kafkaListClustersAPI
+		client  kafkaClustersLister
 		wantOut string
 		wantErr bool
 	}{
@@ -472,7 +472,7 @@ func (m *mockKafkaListTopicsClient) ListTopics(
 func TestListTopics(t *testing.T) {
 	tests := []struct {
 		name       string
-		client     kafkaListTopicsAPI
+		client     kafkaTopicsLister
 		clusterArn string
 		wantOut    string
 		wantErr    bool

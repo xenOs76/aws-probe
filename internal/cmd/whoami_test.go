@@ -74,7 +74,7 @@ func (m *mockSTSClient) GetCallerIdentity(
 func TestRunWhoami(t *testing.T) {
 	tests := []struct {
 		name       string
-		client     stsCallerIdentityAPI
+		client     stsIdentityGetter
 		want       string
 		wantStderr string
 		wantErr    bool
@@ -140,7 +140,7 @@ func TestRunWhoami(t *testing.T) {
 	}
 }
 
-func captureWhoamiOutput(t *testing.T, client stsCallerIdentityAPI) (stdout, stderr string, runErr error) {
+func captureWhoamiOutput(t *testing.T, client stsIdentityGetter) (stdout, stderr string, runErr error) {
 	t.Helper()
 
 	oldStdout := os.Stdout
