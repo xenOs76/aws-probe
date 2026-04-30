@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -143,4 +147,62 @@ func TestNewRootCmd(t *testing.T) {
 	assert.Equal(t, "aws-probe", cmd.Use)
 	assert.NotNil(t, cmd.Commands())
 	assert.Len(t, cmd.Commands(), 6)
+}
+
+func TestNewSnsCmd(t *testing.T) {
+	cmd := newSnsCmd()
+
+	require.NotNil(t, cmd)
+	assert.Equal(t, "sns", cmd.Use)
+	assert.NotNil(t, cmd.Commands())
+	assert.Len(t, cmd.Commands(), 2)
+}
+
+func TestNewSnsListTopicsCmd(t *testing.T) {
+	cmd := newSnsListTopicsCmd()
+
+	require.NotNil(t, cmd)
+	assert.Equal(t, "list-topics", cmd.Use)
+	assert.NotNil(t, cmd.RunE)
+}
+
+func TestNewSnsListSubscriptionsCmd(t *testing.T) {
+	cmd := newSnsListSubscriptionsCmd()
+
+	require.NotNil(t, cmd)
+	assert.Equal(t, "list-subscriptions [topic-arn]", cmd.Use)
+	assert.NotNil(t, cmd.RunE)
+}
+
+func TestCommandRunE_Error(t *testing.T) {
+	oldPrepare := PrepareAWSConfig
+
+	defer func() { PrepareAWSConfig = oldPrepare }()
+
+	PrepareAWSConfig = func(_ context.Context, _ ...func(*config.LoadOptions) error) (aws.Config, error) {
+		return aws.Config{}, errors.New("load error")
+	}
+
+	tests := []struct {
+		name string
+		cmd  *cobra.Command
+		args []string
+	}{
+		{"sns list-topics", newSnsListTopicsCmd(), []string{}},
+		{"sns list-subscriptions", newSnsListSubscriptionsCmd(), []string{"arn"}},
+		{"msk list-clusters", newListClustersCmd(), []string{}},
+		{"msk list-topics", newListTopicsCmd(), []string{"arn"}},
+		{"msk produce", newProduceCmd(), []string{}},
+		{"msk consume", newConsumeCmd(), []string{}},
+		{"secrets list-secrets", newListSecretsCmd(), []string{}},
+		{"sqs list-queues", newListQueuesCmd(), []string{}},
+		{"s3 get-object-metadata", newGetObjectMetadataCmd(), []string{"b", "k"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cmd.RunE(tt.cmd, tt.args)
+			require.Error(t, err)
+		})
+	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newSnsCmd creates the SNS command.
 func newSnsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sns",
@@ -23,6 +24,7 @@ func newSnsCmd() *cobra.Command {
 	return cmd
 }
 
+// newSnsListTopicsCmd creates the list-topics subcommand for SNS.
 func newSnsListTopicsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list-topics",
@@ -34,6 +36,7 @@ func newSnsListTopicsCmd() *cobra.Command {
 	}
 }
 
+// newSnsListSubscriptionsCmd creates the list-subscriptions subcommand for SNS.
 func newSnsListSubscriptionsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list-subscriptions [topic-arn]",
@@ -46,6 +49,7 @@ func newSnsListSubscriptionsCmd() *cobra.Command {
 	}
 }
 
+// runSnsListTopics executes the list-topics command for SNS.
 func runSnsListTopics(ctx context.Context) error {
 	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
@@ -55,6 +59,7 @@ func runSnsListTopics(ctx context.Context) error {
 	return listSnsTopics(ctx, sns.NewFromConfig(cfg))
 }
 
+// runSnsListSubscriptions executes the list-subscriptions command for SNS.
 func runSnsListSubscriptions(ctx context.Context, topicArn string) error {
 	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
@@ -64,6 +69,7 @@ func runSnsListSubscriptions(ctx context.Context, topicArn string) error {
 	return listSnsSubscriptions(ctx, topicArn, sns.NewFromConfig(cfg))
 }
 
+// listSnsTopics lists SNS topics using the provided API client.
 func listSnsTopics(ctx context.Context, api snsTopicsLister) error {
 	paginator := sns.NewListTopicsPaginator(api, &sns.ListTopicsInput{})
 
@@ -99,6 +105,7 @@ func listSnsTopics(ctx context.Context, api snsTopicsLister) error {
 	return tw.Flush()
 }
 
+// listSnsSubscriptions lists SNS subscriptions using the provided API client.
 func listSnsSubscriptions(ctx context.Context, topicArn string, api snsSubscriptionsLister) error {
 	paginator := sns.NewListSubscriptionsByTopicPaginator(api, &sns.ListSubscriptionsByTopicInput{
 		TopicArn: &topicArn,

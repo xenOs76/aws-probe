@@ -42,6 +42,7 @@ func runGetObjectMetadata(ctx context.Context, bucket, key string) error {
 	return getObjectMetadata(ctx, bucket, key, s3Client, kmsClient, kmsClient)
 }
 
+// getObjectMetadata retrieves and displays metadata for an S3 object.
 func getObjectMetadata(
 	ctx context.Context,
 	bucket string,
@@ -72,6 +73,7 @@ func getObjectMetadata(
 	return tw.Flush()
 }
 
+// displayGeneralInfo prints general information about the object.
 func displayGeneralInfo(tw *tabwriter.Writer, key string, output *s3.HeadObjectOutput) {
 	fmt.Fprintln(tw, "\nGENERAL")
 	fmt.Fprintf(tw, metadataFieldFormat, "KEY", key)
@@ -91,6 +93,7 @@ func displayGeneralInfo(tw *tabwriter.Writer, key string, output *s3.HeadObjectO
 	}
 }
 
+// displayContentInfo prints content-related information about the object.
 func displayContentInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmt.Fprintln(tw, "\nCONTENT")
 	fmtField(tw, "CONTENT-TYPE", output.ContentType)
@@ -110,6 +113,7 @@ func displayContentInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	}
 }
 
+// displayStorageInfo prints storage-related information about the object.
 func displayStorageInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmt.Fprintln(tw, "\nSTORAGE")
 
@@ -130,6 +134,7 @@ func displayStorageInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	}
 }
 
+// displayEncryptionInfo prints encryption-related information about the object.
 func displayEncryptionInfo(
 	ctx context.Context,
 	tw *tabwriter.Writer,
@@ -169,6 +174,7 @@ func displayEncryptionInfo(
 	}
 }
 
+// displayVersioningInfo prints versioning-related information about the object.
 func displayVersioningInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmt.Fprintln(tw, "\nVERSIONING")
 	fmtField(tw, "VERSION ID", output.VersionId)
@@ -179,6 +185,7 @@ func displayVersioningInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	}
 }
 
+// displayObjectLockInfo prints object lock-related information about the object.
 func displayObjectLockInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	hasLockInfo := output.ObjectLockLegalHoldStatus != "" ||
 		output.ObjectLockMode != "" ||
@@ -205,6 +212,7 @@ func displayObjectLockInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	}
 }
 
+// displayOtherInfo prints other miscellaneous information about the object.
 func displayOtherInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	hasOtherInfo := output.WebsiteRedirectLocation != nil ||
 		output.ChecksumCRC32 != nil ||
@@ -231,6 +239,7 @@ func displayOtherInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmtField(tw, "CHECKSUM SHA256", output.ChecksumSHA256)
 }
 
+// displayCustomMetadata prints custom metadata key-value pairs.
 func displayCustomMetadata(tw *tabwriter.Writer, metadata map[string]string) {
 	if len(metadata) == 0 {
 		return
@@ -243,12 +252,14 @@ func displayCustomMetadata(tw *tabwriter.Writer, metadata map[string]string) {
 	}
 }
 
+// fmtField prints a labeled field if the value is not nil or empty.
 func fmtField(tw *tabwriter.Writer, label string, value *string) {
 	if value != nil && *value != "" {
 		fmt.Fprintf(tw, metadataFieldFormat, label, *value)
 	}
 }
 
+// formatETag removes quotes from the ETag string.
 func formatETag(etag *string) string {
 	if etag == nil {
 		return "-"
@@ -257,6 +268,7 @@ func formatETag(etag *string) string {
 	return strings.Trim(*etag, `"`)
 }
 
+// formatTime formats a time pointer to a human-readable string.
 func formatTime(t *time.Time) string {
 	if t == nil {
 		return "-"
@@ -265,6 +277,7 @@ func formatTime(t *time.Time) string {
 	return t.Format("2006-01-02 15:04:05 MST")
 }
 
+// getKMSKeyARN retrieves the ARN of a KMS key.
 func getKMSKeyARN(ctx context.Context, api kmsKeyDescriber, keyID string) (string, error) {
 	input := &kms.DescribeKeyInput{
 		KeyId: &keyID,
@@ -282,6 +295,7 @@ func getKMSKeyARN(ctx context.Context, api kmsKeyDescriber, keyID string) (strin
 	return "", nil
 }
 
+// getKMSKeyName retrieves the alias name of a KMS key.
 func getKMSKeyName(ctx context.Context, api kmsAliasesLister, keyID string) (string, error) {
 	paginator := kms.NewListAliasesPaginator(api, &kms.ListAliasesInput{})
 

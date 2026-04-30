@@ -11,22 +11,35 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 )
 
+// AuthMethodType represents the type of AWS authentication being used.
 type AuthMethodType string
 
 const (
-	AuthMethodEC2Role     AuthMethodType = "ec2_iam_role"
-	AuthMethodEKSIRSA     AuthMethodType = "eks_irsa"
-	AuthMethodSSO         AuthMethodType = "aws_sso"
+	// AuthMethodEC2Role indicates the use of an EC2 IAM role via IMDS.
+	AuthMethodEC2Role AuthMethodType = "ec2_iam_role"
+	// AuthMethodEKSIRSA indicates the use of EKS IAM Roles for Service Accounts.
+	AuthMethodEKSIRSA AuthMethodType = "eks_irsa"
+	// AuthMethodSSO indicates the use of AWS IAM Identity Center (SSO).
+	AuthMethodSSO AuthMethodType = "aws_sso"
+	// AuthMethodStaticCreds indicates the use of static credentials via environment variables.
 	AuthMethodStaticCreds AuthMethodType = "static_credentials"
-	AuthMethodAWSProfile  AuthMethodType = "aws_profile"
-	AuthMethodECS         AuthMethodType = "ecs_task_role"
-	AuthMethodUnknown     AuthMethodType = "unknown"
+	// AuthMethodAWSProfile indicates the use of a named AWS profile.
+	AuthMethodAWSProfile AuthMethodType = "aws_profile"
+	// AuthMethodECS indicates the use of an ECS task role.
+	AuthMethodECS AuthMethodType = "ecs_task_role"
+	// AuthMethodUnknown indicates that the authentication method could not be determined.
+	AuthMethodUnknown AuthMethodType = "unknown"
 )
 
+// AuthMethod contains information about the detected AWS authentication method.
 type AuthMethod struct {
-	Type           AuthMethodType
+	// Type is the categorized type of authentication.
+	Type AuthMethodType
+	// IdentitySource is a human-readable description of where the identity comes from.
 	IdentitySource string
-	RoleARN        string
+	// RoleARN is the ARN of the IAM role being used, if available.
+	RoleARN string
+	// ServiceAccount is the name of the EKS service account, if applicable.
 	ServiceAccount string
 }
 
@@ -64,8 +77,8 @@ func IsCredentialError(err error) bool {
 	return false
 }
 
-// LoadAWSConfig loads the AWS configuration for the given context.
-func LoadAWSConfig(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
+// LoadAWSConfig loads the AWS configuration.
+var LoadAWSConfig = func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
 	if err != nil {
 		return cfg, err
@@ -78,8 +91,8 @@ func LoadAWSConfig(ctx context.Context, optFns ...func(*config.LoadOptions) erro
 	return cfg, nil
 }
 
-// EnsureCredentials verifies that AWS credentials are available.
-func EnsureCredentials() error {
+// EnsureCredentials checks if AWS credentials are available.
+var EnsureCredentials = func() error {
 	auth := DetectAuthMethod()
 
 	if auth.Type == AuthMethodUnknown {
@@ -92,7 +105,7 @@ func EnsureCredentials() error {
 }
 
 // PrepareAWSConfig combines EnsureCredentials and LoadAWSConfig.
-func PrepareAWSConfig(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
+var PrepareAWSConfig = func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
 	if err := EnsureCredentials(); err != nil {
 		return aws.Config{}, err
 	}
@@ -112,7 +125,7 @@ func printCredentialsMessage() {
 
 // DetectAuthMethod detects the current AWS authentication method based on environment variables.
 func DetectAuthMethod() AuthMethod {
-	if tokenFile := os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"); tokenFile != "" {
+	if os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE") != "" {
 		return AuthMethod{
 			Type:           AuthMethodEKSIRSA,
 			IdentitySource: "EKS IRSA (IAM Role for Service Account)",
@@ -136,19 +149,17 @@ func DetectAuthMethod() AuthMethod {
 		}
 	}
 
-	if _, hasKey := os.LookupEnv("AWS_ACCESS_KEY_ID"); hasKey {
-		if _, hasSecret := os.LookupEnv("AWS_SECRET_ACCESS_KEY"); hasSecret {
-			if isSSOEnvironment() {
-				return AuthMethod{
-					Type:           AuthMethodSSO,
-					IdentitySource: "AWS IAM Identity Center (SSO)",
-				}
-			}
-
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		if isSSOEnvironment() {
 			return AuthMethod{
-				Type:           AuthMethodStaticCreds,
-				IdentitySource: "Static credentials (environment variables)",
+				Type:           AuthMethodSSO,
+				IdentitySource: "AWS IAM Identity Center (SSO)",
 			}
+		}
+
+		return AuthMethod{
+			Type:           AuthMethodStaticCreds,
+			IdentitySource: "Static credentials (environment variables)",
 		}
 	}
 

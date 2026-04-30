@@ -192,6 +192,7 @@ func formatSize(size int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
 }
 
+// renderCommonPrefixes prints S3 common prefixes (directories).
 func renderCommonPrefixes(tw *tabwriter.Writer, prefixes []s3types.CommonPrefix, basePrefix string) {
 	for _, cp := range prefixes {
 		if cp.Prefix != nil {
@@ -201,6 +202,7 @@ func renderCommonPrefixes(tw *tabwriter.Writer, prefixes []s3types.CommonPrefix,
 	}
 }
 
+// renderContents prints S3 objects.
 func renderContents(tw *tabwriter.Writer, contents []s3types.Object, basePrefix string) {
 	for _, obj := range contents {
 		modified := ""

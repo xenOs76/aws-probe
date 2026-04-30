@@ -46,7 +46,7 @@ linters:
           disabled: true
           exclude: [""]
         - name: exported
-          disabled: true
+          disabled: false
 
         - name: line-length-limit
           severity: warning

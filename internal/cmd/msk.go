@@ -45,6 +45,7 @@ var (
 	mskVerbose    bool
 )
 
+// addCommonKafkaFlags adds common Kafka flags to the given command.
 func addCommonKafkaFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&mskBrokers, "brokers", "", "Comma-separated list of Kafka brokers")
 	cmd.Flags().StringVar(&mskClusterArn, "cluster-arn", "", "MSK cluster ARN to fetch brokers from")
@@ -55,6 +56,7 @@ func addCommonKafkaFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&mskVerbose, "verbose", false, "Enable verbose logging")
 }
 
+// newProduceCmd creates the produce subcommand.
 func newProduceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "produce [topic] [message]",
@@ -91,6 +93,7 @@ func newProduceCmd() *cobra.Command {
 	return cmd
 }
 
+// newConsumeCmd creates the consume subcommand.
 func newConsumeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "consume [topic]",
@@ -245,6 +248,7 @@ func listTopics(ctx context.Context, clusterArn string, api kafkaTopicsLister) e
 	return tw.Flush()
 }
 
+// runProduce executes the produce command.
 func runProduce(ctx context.Context) error {
 	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
@@ -278,6 +282,7 @@ func runProduce(ctx context.Context) error {
 	return svc.Produce(ctx, kcfg, key, []byte(mskMessage))
 }
 
+// runConsume executes the consume command.
 func runConsume(ctx context.Context) error {
 	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
@@ -313,6 +318,7 @@ func runConsume(ctx context.Context) error {
 	})
 }
 
+// resolveBrokers resolves Kafka brokers from flags or MSK cluster ARN.
 func resolveBrokers(ctx context.Context, api kafkaBrokersGetter) ([]string, error) {
 	if mskBrokers != "" {
 		return strings.Split(mskBrokers, ","), nil

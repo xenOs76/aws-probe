@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// DefaultAWSRegion is the default region used when no region is specified.
 var DefaultAWSRegion = func() string {
 	if region := os.Getenv("AWS_DEFAULT_REGION"); region != "" {
 		return region
@@ -14,6 +15,7 @@ var DefaultAWSRegion = func() string {
 	return "eu-central-1"
 }()
 
+// Version is the current version of the aws-probe tool.
 var Version = "dev"
 
 // newRootCmd creates the top-level aws-probe command.

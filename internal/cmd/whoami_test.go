@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,6 +72,12 @@ func (m *mockSTSClient) GetCallerIdentity(
 	return m.output, m.err
 }
 
+func TestNewWhoamiCmd(t *testing.T) {
+	cmd := newWhoamiCmd()
+	assert.Equal(t, "whoami", cmd.Use)
+	assert.NotEmpty(t, cmd.Short)
+}
+
 func TestRunWhoami(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -128,7 +135,7 @@ func TestRunWhoami(t *testing.T) {
 			stdout, stderr, runErr := captureWhoamiOutput(t, tt.client)
 
 			if tt.wantErr {
-				assert.Error(t, runErr)
+				require.Error(t, runErr)
 
 				return
 			}
@@ -429,4 +436,24 @@ func TestDetectAuthMethod_SSOEnvironmentVars(t *testing.T) {
 
 	assert.Equal(t, AuthMethodSSO, result.Type)
 	assert.Equal(t, "AWS IAM Identity Center (SSO)", result.IdentitySource)
+}
+
+func TestWhoamiCmd_RunE(t *testing.T) {
+	oldPrepare := PrepareAWSConfig
+
+	defer func() { PrepareAWSConfig = oldPrepare }()
+
+	LoadAWSConfig = func(_ context.Context, _ ...func(*config.LoadOptions) error) (aws.Config, error) {
+		return aws.Config{}, nil
+	}
+
+	cmd := newWhoamiCmd()
+
+	LoadAWSConfig = func(_ context.Context, _ ...func(*config.LoadOptions) error) (aws.Config, error) {
+		return aws.Config{}, errors.New("load error")
+	}
+
+	err := cmd.RunE(cmd, []string{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "load error")
 }

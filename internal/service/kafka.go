@@ -13,35 +13,49 @@ import (
 
 // KafkaConfig holds configuration for Kafka operations.
 type KafkaConfig struct {
-	Brokers       []string
-	Topic         string
-	Auth          string // "iam" or "none"
-	UseTLS        bool
-	Acks          int16
-	Group         string
+	// Brokers is a list of Kafka broker addresses.
+	Brokers []string
+	// Topic is the Kafka topic name.
+	Topic string
+	// Auth is the authentication method ("iam" or "none").
+	Auth string
+	// UseTLS indicates whether to use TLS for connection.
+	UseTLS bool
+	// Acks is the number of acknowledgments the producer requires (0, 1, or -1 for all).
+	Acks int16
+	// Group is the consumer group ID.
+	Group string
+	// FromBeginning indicates whether to start consuming from the beginning of the topic.
 	FromBeginning bool
 }
 
 // Record represents a Kafka record.
 type Record struct {
-	Topic     string
-	Key       []byte
-	Value     []byte
+	// Topic is the name of the topic the record was stored in.
+	Topic string
+	// Key is the key of the record.
+	Key []byte
+	// Value is the value of the record.
+	Value []byte
+	// Partition is the partition the record was stored in.
 	Partition int32
-	Offset    int64
+	// Offset is the offset of the record in the partition.
+	Offset int64
 }
 
 // KafkaService provides methods to interact with Kafka.
 type KafkaService struct {
-	logger *slog.Logger
-	cfg    aws.Config
+	logger        *slog.Logger
+	cfg           aws.Config
+	clientFactory func(...kgo.Opt) (*kgo.Client, error)
 }
 
 // NewKafkaService creates a new KafkaService.
 func NewKafkaService(cfg aws.Config, logger *slog.Logger) *KafkaService {
 	return &KafkaService{
-		cfg:    cfg,
-		logger: logger,
+		cfg:           cfg,
+		logger:        logger,
+		clientFactory: kgo.NewClient,
 	}
 }
 
@@ -70,7 +84,7 @@ func (s *KafkaService) Produce(ctx context.Context, kcfg KafkaConfig, key, value
 
 	opts = append(opts, kgo.WithLogger(&kgoLogger{s: s}))
 
-	client, err := kgo.NewClient(opts...)
+	client, err := s.clientFactory(opts...)
 	if err != nil {
 		return fmt.Errorf("creating kafka client: %w", err)
 	}
@@ -133,7 +147,7 @@ func (s *KafkaService) Consume(
 		opts = append(opts, kgo.ConsumeResetOffset(kgo.NewOffset().AtStart()))
 	}
 
-	client, err := kgo.NewClient(opts...)
+	client, err := s.clientFactory(opts...)
 	if err != nil {
 		return fmt.Errorf("creating kafka client: %w", err)
 	}

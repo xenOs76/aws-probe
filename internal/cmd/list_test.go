@@ -1,15 +1,13 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"io"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kafka"
 	kafkatypes "github.com/aws/aws-sdk-go-v2/service/kafka/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -526,45 +524,24 @@ func TestListTopics(t *testing.T) {
 	}
 }
 
-func captureCmdOutput(t *testing.T, fn func() error) (cmdOutput, error) {
-	t.Helper()
+func TestS3Cmd_RunE_Error(t *testing.T) {
+	oldPrepare := PrepareAWSConfig
 
-	oldStdout, oldStderr := os.Stdout, os.Stderr
+	defer func() { PrepareAWSConfig = oldPrepare }()
 
-	stdoutR, stdoutW, err := os.Pipe()
-	require.NoError(t, err)
+	PrepareAWSConfig = func(_ context.Context, _ ...func(*config.LoadOptions) error) (aws.Config, error) {
+		return aws.Config{}, errors.New("load error")
+	}
 
-	stderrR, stderrW, err := os.Pipe()
-	require.NoError(t, err)
-
-	os.Stdout = stdoutW
-	os.Stderr = stderrW
-
-	t.Cleanup(func() {
-		os.Stdout = oldStdout
-		os.Stderr = oldStderr
+	t.Run("list-buckets", func(t *testing.T) {
+		cmd := newListBucketsCmd()
+		err := cmd.RunE(cmd, []string{})
+		require.Error(t, err)
 	})
 
-	fnErr := fn()
-
-	stdoutW.Close()
-	stderrW.Close()
-
-	os.Stdout = oldStdout
-	os.Stderr = oldStderr
-
-	var stdoutBuf, stderrBuf bytes.Buffer
-
-	_, err = io.Copy(&stdoutBuf, stdoutR)
-	require.NoError(t, err)
-
-	_, err = io.Copy(&stderrBuf, stderrR)
-	require.NoError(t, err)
-
-	return cmdOutput{stdout: stdoutBuf.String(), stderr: stderrBuf.String()}, fnErr
-}
-
-type cmdOutput struct {
-	stdout string
-	stderr string
+	t.Run("list-bucket", func(t *testing.T) {
+		cmd := newListBucketCmd()
+		err := cmd.RunE(cmd, []string{"b"})
+		require.Error(t, err)
+	})
 }
