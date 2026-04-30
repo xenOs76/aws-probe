@@ -46,7 +46,7 @@ func runListQueues(ctx context.Context) error {
 }
 
 // listQueues lists SQS queues using the provided API client.
-func listQueues(ctx context.Context, api sqsListAPI) error {
+func listQueues(ctx context.Context, api sqsLister) error {
 	var allQueueUrls []string
 
 	input := &sqs.ListQueuesInput{}

@@ -50,7 +50,7 @@ func runListBuckets(ctx context.Context) error {
 }
 
 // listBuckets lists S3 buckets using the provided API client.
-func listBuckets(ctx context.Context, api s3ListAPI) error {
+func listBuckets(ctx context.Context, api s3Lister) error {
 	output, err := api.ListBuckets(ctx, &s3.ListBucketsInput{})
 	if err != nil {
 		return fmt.Errorf("listing S3 buckets: %w", err)
@@ -118,7 +118,7 @@ func runListBucket(ctx context.Context, bucket, path string, recursive bool) err
 // listBucket lists objects in an S3 bucket using the provided API client.
 //
 //nolint:revive // recursive is not a control flag in this context, it's a functional option
-func listBucket(ctx context.Context, bucket, prefix string, recursive bool, api s3ListObjectsAPI) error {
+func listBucket(ctx context.Context, bucket, prefix string, recursive bool, api s3ObjectsLister) error {
 	input := &s3.ListObjectsV2Input{
 		Bucket: &bucket,
 	}

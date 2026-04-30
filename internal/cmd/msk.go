@@ -161,7 +161,7 @@ func runListTopics(ctx context.Context, clusterArn string) error {
 }
 
 // listClusters lists MSK clusters using the provided API client.
-func listClusters(ctx context.Context, api kafkaListClustersAPI) error {
+func listClusters(ctx context.Context, api kafkaClustersLister) error {
 	var allClusters []kafkatypes.Cluster
 
 	input := &kafka.ListClustersV2Input{}
@@ -202,7 +202,7 @@ func listClusters(ctx context.Context, api kafkaListClustersAPI) error {
 }
 
 // listTopics lists MSK topics for a given cluster using the provided API client.
-func listTopics(ctx context.Context, clusterArn string, api kafkaListTopicsAPI) error {
+func listTopics(ctx context.Context, clusterArn string, api kafkaTopicsLister) error {
 	var allTopics []kafkatypes.TopicInfo
 
 	input := &kafka.ListTopicsInput{
@@ -313,7 +313,7 @@ func runConsume(ctx context.Context) error {
 	})
 }
 
-func resolveBrokers(ctx context.Context, api kafkaGetBrokersAPI) ([]string, error) {
+func resolveBrokers(ctx context.Context, api kafkaBrokersGetter) ([]string, error) {
 	if mskBrokers != "" {
 		return strings.Split(mskBrokers, ","), nil
 	}

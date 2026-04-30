@@ -46,7 +46,7 @@ func runListSecrets(ctx context.Context) error {
 }
 
 // listSecrets lists secrets using the provided API client.
-func listSecrets(ctx context.Context, api secretsListAPI) error {
+func listSecrets(ctx context.Context, api secretsLister) error {
 	paginator := secretsmanager.NewListSecretsPaginator(api, &secretsmanager.ListSecretsInput{})
 
 	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
