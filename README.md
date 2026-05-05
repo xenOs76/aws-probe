@@ -7,13 +7,19 @@
     <i>A tool for checking cloud wiring</i>
 </p>
 
-`aws-probe` is a CLI toolkit designed to troubleshoot and verify connectivity to AWS resources. It helps developers and operators confirm that their "wiring" (IAM roles, security groups, network paths) is correctly configured for various AWS services.
+`aws-probe` is a CLI toolkit designed to troubleshoot and verify connectivity to
+AWS resources. It helps developers and operators confirm that their "wiring"
+(IAM roles, security groups, network paths) is correctly configured for various
+AWS services.
 
 ## Features
 
-- **Identity Verification**: Quickly check your current AWS credentials and assumed role.
-- **Service Inspection**: List and probe resources for S3, SQS, SNS, and Secrets Manager.
-- **MSK Power Tools**: List MSK clusters and topics, and interact with Kafka via IAM authentication to produce and consume messages.
+- **Identity Verification**: Quickly check your current AWS credentials and
+  assumed role.
+- **Service Inspection**: List and probe resources for S3, SQS, SNS, and Secrets
+  Manager.
+- **MSK Power Tools**: List MSK clusters and topics, and interact with Kafka via
+  IAM authentication to produce and consume messages.
 
 ## Installation
 
@@ -79,8 +85,8 @@ Install `aws-probe`:
 brew install --casks aws-probe
 ```
 
-Note: `aws-probe` is not configured and signed as a MacOS app. Manual
-steps might be needed to enable the execution of the binary.
+Note: `aws-probe` is not configured and signed as a MacOS app. Manual steps
+might be needed to enable the execution of the binary.
 
 </details>
 
@@ -149,14 +155,6 @@ aws-probe sns --list-subscriptions <topic-arn>
 # List SQS queues
 aws-probe sqs --list-queues
 ```
-
-## Development
-
-### Pre-commit
-
-This project uses [pre-commit](https://pre-commit.com/) to maintain code quality. The canonical configuration is stored in `.pre-commit-config.yaml`.
-
-If you need personal local overrides, you can use `.pre-commit-config.local.yaml`, which is ignored by git.
 
 ## License
 
