@@ -17,33 +17,12 @@ func TestNewS3Cmd(t *testing.T) {
 
 	require.NotNil(t, cmd)
 	assert.Equal(t, "s3", cmd.Use)
-	assert.NotNil(t, cmd.Commands())
-	assert.Len(t, cmd.Commands(), 3)
-}
-
-func TestNewListBucketsCmd(t *testing.T) {
-	cmd := newListBucketsCmd()
-
-	require.NotNil(t, cmd)
-	assert.Equal(t, "list-buckets", cmd.Use)
-	assert.NotNil(t, cmd.RunE)
-}
-
-func TestNewListBucketCmd(t *testing.T) {
-	cmd := newListBucketCmd()
-
-	require.NotNil(t, cmd)
-	assert.Equal(t, "list-bucket [bucket-name] [path]", cmd.Use)
-	assert.NotNil(t, cmd.RunE)
+	assert.NotNil(t, cmd.Flags().Lookup("list-buckets"))
+	assert.NotNil(t, cmd.Flags().Lookup("list-bucket"))
+	assert.NotNil(t, cmd.Flags().Lookup("get-metadata"))
+	assert.NotNil(t, cmd.Flags().Lookup("path"))
 	assert.NotNil(t, cmd.Flags().Lookup("recursive"))
-}
-
-func TestNewGetObjectMetadataCmd(t *testing.T) {
-	cmd := newGetObjectMetadataCmd()
-
-	require.NotNil(t, cmd)
-	assert.Equal(t, "get-object-metadata [bucket-name] [key]", cmd.Use)
-	assert.NotNil(t, cmd.RunE)
+	assert.NotNil(t, cmd.Flags().Lookup("key"))
 }
 
 func TestNewSqsCmd(t *testing.T) {
@@ -51,17 +30,7 @@ func TestNewSqsCmd(t *testing.T) {
 
 	require.NotNil(t, cmd)
 	assert.Equal(t, "sqs", cmd.Use)
-	assert.NotNil(t, cmd.Commands())
-	assert.Len(t, cmd.Commands(), 1)
-	assert.Equal(t, "list-queues", cmd.Commands()[0].Use)
-}
-
-func TestNewListQueuesCmd(t *testing.T) {
-	cmd := newListQueuesCmd()
-
-	require.NotNil(t, cmd)
-	assert.Equal(t, "list-queues", cmd.Use)
-	assert.NotNil(t, cmd.RunE)
+	assert.NotNil(t, cmd.Flags().Lookup("list-queues"))
 }
 
 func TestNewSecretsCmd(t *testing.T) {
@@ -69,17 +38,8 @@ func TestNewSecretsCmd(t *testing.T) {
 
 	require.NotNil(t, cmd)
 	assert.Equal(t, "secrets", cmd.Use)
-	assert.NotNil(t, cmd.Commands())
-	assert.Len(t, cmd.Commands(), 1)
-	assert.Equal(t, "list-secrets", cmd.Commands()[0].Use)
-}
-
-func TestNewListSecretsCmd(t *testing.T) {
-	cmd := newListSecretsCmd()
-
-	require.NotNil(t, cmd)
-	assert.Equal(t, "list-secrets", cmd.Use)
-	assert.NotNil(t, cmd.RunE)
+	assert.NotNil(t, cmd.Flags().Lookup("list-secrets"))
+	assert.NotNil(t, cmd.Flags().Lookup("get-secret-value"))
 }
 
 func TestNewMskCmd(t *testing.T) {
@@ -87,35 +47,10 @@ func TestNewMskCmd(t *testing.T) {
 
 	require.NotNil(t, cmd)
 	assert.Equal(t, "msk", cmd.Use)
-	assert.NotNil(t, cmd.Commands())
-	assert.Len(t, cmd.Commands(), 4)
-}
-
-func TestNewListClustersCmd(t *testing.T) {
-	cmd := newListClustersCmd()
-
-	require.NotNil(t, cmd)
-	assert.Equal(t, "list-clusters", cmd.Use)
-	assert.NotNil(t, cmd.RunE)
-}
-
-func TestNewListTopicsCmd(t *testing.T) {
-	cmd := newListTopicsCmd()
-
-	require.NotNil(t, cmd)
-	assert.Equal(t, "list-topics [cluster-arn]", cmd.Use)
-	assert.NotNil(t, cmd.RunE)
-}
-
-func TestNewProduceCmd(t *testing.T) {
-	cmd := newProduceCmd()
-
-	require.NotNil(t, cmd)
-	assert.Equal(t, "produce [topic] [message]", cmd.Use)
-	assert.NotNil(t, cmd.RunE)
-	checkCommonKafkaFlags(t, cmd)
-	assert.NotNil(t, cmd.Flags().Lookup("message"))
-	assert.NotNil(t, cmd.Flags().Lookup("key"))
+	assert.NotNil(t, cmd.Flags().Lookup("list-clusters"))
+	assert.NotNil(t, cmd.Flags().Lookup("list-topics"))
+	assert.NotNil(t, cmd.Flags().Lookup("produce"))
+	assert.NotNil(t, cmd.Flags().Lookup("consume"))
 }
 
 func checkCommonKafkaFlags(t *testing.T, cmd *cobra.Command) {
@@ -127,17 +62,6 @@ func checkCommonKafkaFlags(t *testing.T, cmd *cobra.Command) {
 	assert.NotNil(t, cmd.Flags().Lookup("tls"))
 	assert.NotNil(t, cmd.Flags().Lookup("acks"))
 	assert.NotNil(t, cmd.Flags().Lookup("verbose"))
-}
-
-func TestNewConsumeCmd(t *testing.T) {
-	cmd := newConsumeCmd()
-
-	require.NotNil(t, cmd)
-	assert.Equal(t, "consume [topic]", cmd.Use)
-	assert.NotNil(t, cmd.RunE)
-	checkCommonKafkaFlags(t, cmd)
-	assert.NotNil(t, cmd.Flags().Lookup("group"))
-	assert.NotNil(t, cmd.Flags().Lookup("from-beginning"))
 }
 
 func TestNewRootCmd(t *testing.T) {
@@ -154,26 +78,11 @@ func TestNewSnsCmd(t *testing.T) {
 
 	require.NotNil(t, cmd)
 	assert.Equal(t, "sns", cmd.Use)
-	assert.NotNil(t, cmd.Commands())
-	assert.Len(t, cmd.Commands(), 2)
+	assert.NotNil(t, cmd.Flags().Lookup("list-topics"))
+	assert.NotNil(t, cmd.Flags().Lookup("list-subscriptions"))
 }
 
-func TestNewSnsListTopicsCmd(t *testing.T) {
-	cmd := newSnsListTopicsCmd()
-
-	require.NotNil(t, cmd)
-	assert.Equal(t, "list-topics", cmd.Use)
-	assert.NotNil(t, cmd.RunE)
-}
-
-func TestNewSnsListSubscriptionsCmd(t *testing.T) {
-	cmd := newSnsListSubscriptionsCmd()
-
-	require.NotNil(t, cmd)
-	assert.Equal(t, "list-subscriptions [topic-arn]", cmd.Use)
-	assert.NotNil(t, cmd.RunE)
-}
-
+//nolint:revive // maximum number of lines per function exceeded is acceptable for test case exhaustive coverage
 func TestCommandRunE_Error(t *testing.T) {
 	oldPrepare := PrepareAWSConfig
 
@@ -183,20 +92,92 @@ func TestCommandRunE_Error(t *testing.T) {
 		return aws.Config{}, errors.New("load error")
 	}
 
+	setFlag := func(t *testing.T, cmd *cobra.Command, name, value string) {
+		t.Helper()
+		require.NoError(t, cmd.Flags().Set(name, value))
+	}
+
 	tests := []struct {
 		name string
 		cmd  *cobra.Command
 		args []string
 	}{
-		{"sns list-topics", newSnsListTopicsCmd(), []string{}},
-		{"sns list-subscriptions", newSnsListSubscriptionsCmd(), []string{"arn"}},
-		{"msk list-clusters", newListClustersCmd(), []string{}},
-		{"msk list-topics", newListTopicsCmd(), []string{"arn"}},
-		{"msk produce", newProduceCmd(), []string{}},
-		{"msk consume", newConsumeCmd(), []string{}},
-		{"secrets list-secrets", newListSecretsCmd(), []string{}},
-		{"sqs list-queues", newListQueuesCmd(), []string{}},
-		{"s3 get-object-metadata", newGetObjectMetadataCmd(), []string{"b", "k"}},
+		{"sns --list-topics", func() *cobra.Command {
+			c := newSnsCmd()
+			setFlag(t, c, "list-topics", "true")
+
+			return c
+		}(), []string{}},
+		{"sns --list-subscriptions", func() *cobra.Command {
+			c := newSnsCmd()
+			setFlag(t, c, "list-subscriptions", "arn")
+
+			return c
+		}(), []string{}},
+		{"msk --list-clusters", func() *cobra.Command {
+			c := newMskCmd()
+			setFlag(t, c, "list-clusters", "true")
+
+			return c
+		}(), []string{}},
+		{"msk --list-topics", func() *cobra.Command {
+			c := newMskCmd()
+			setFlag(t, c, "list-topics", "arn")
+
+			return c
+		}(), []string{}},
+		{"msk --produce", func() *cobra.Command {
+			c := newMskCmd()
+			setFlag(t, c, "produce", "true")
+			setFlag(t, c, "topic", "t")
+			setFlag(t, c, "message", "m")
+
+			return c
+		}(), []string{}},
+		{"msk --consume", func() *cobra.Command {
+			c := newMskCmd()
+			setFlag(t, c, "consume", "true")
+			setFlag(t, c, "topic", "t")
+
+			return c
+		}(), []string{}},
+		{"secrets --list-secrets", func() *cobra.Command {
+			c := newSecretsCmd()
+			setFlag(t, c, "list-secrets", "true")
+
+			return c
+		}(), []string{}},
+		{"secrets --get-secret-value", func() *cobra.Command {
+			c := newSecretsCmd()
+			setFlag(t, c, "get-secret-value", "id")
+
+			return c
+		}(), []string{}},
+		{"sqs --list-queues", func() *cobra.Command {
+			c := newSqsCmd()
+			setFlag(t, c, "list-queues", "true")
+
+			return c
+		}(), []string{}},
+		{"s3 --list-buckets", func() *cobra.Command {
+			c := newS3Cmd()
+			setFlag(t, c, "list-buckets", "true")
+
+			return c
+		}(), []string{}},
+		{"s3 --list-bucket", func() *cobra.Command {
+			c := newS3Cmd()
+			setFlag(t, c, "list-bucket", "b")
+
+			return c
+		}(), []string{}},
+		{"s3 --get-metadata", func() *cobra.Command {
+			c := newS3Cmd()
+			setFlag(t, c, "get-metadata", "b")
+			setFlag(t, c, "key", "k")
+
+			return c
+		}(), []string{}},
 	}
 
 	for _, tt := range tests {

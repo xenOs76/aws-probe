@@ -1,81 +1,53 @@
+//nolint:dupl // CLI handlers follow a similar pattern
 package cmd
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"text/tabwriter"
-
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/spf13/cobra"
+	"github.com/xenos76/aws-probe/internal/secrets"
 )
 
 // newSecretsCmd creates the secrets command.
+//
+//nolint:dupl // CLI handlers follow a similar pattern
 func newSecretsCmd() *cobra.Command {
+	var (
+		listSecrets bool
+		getSecret   string
+	)
+
 	cmd := &cobra.Command{
 		Use:   "secrets",
-		Short: "List Secrets Manager secrets",
-		Long:  `List secrets in AWS Secrets Manager.`,
-	}
+		Short: "Manage Secrets Manager secrets",
+		Long:  `List secrets and retrieve secret values from AWS Secrets Manager.`,
+		Example: `  # List all secrets
+  aws-probe secrets --list-secrets
 
-	cmd.AddCommand(newListSecretsCmd())
-
-	return cmd
-}
-
-// newListSecretsCmd creates the list-secrets subcommand.
-func newListSecretsCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "list-secrets",
-		Short: "List Secrets Manager secrets",
-		Long:  `List all secrets in AWS Secrets Manager.`,
+  # Get secret value
+  aws-probe secrets --get-secret-value my-secret-id`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runListSecrets(cmd.Context())
-		},
-	}
-}
-
-// runListSecrets executes the list-secrets command.
-func runListSecrets(ctx context.Context) error {
-	cfg, err := PrepareAWSConfig(ctx)
-	if err != nil {
-		return err
-	}
-
-	return listSecrets(ctx, secretsmanager.NewFromConfig(cfg))
-}
-
-// listSecrets lists secrets using the provided API client.
-func listSecrets(ctx context.Context, api secretsLister) error {
-	paginator := secretsmanager.NewListSecretsPaginator(api, &secretsmanager.ListSecretsInput{})
-
-	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-
-	hasSecrets := false
-
-	for paginator.HasMorePages() {
-		output, err := paginator.NextPage(ctx)
-		if err != nil {
-			_ = tw.Flush()
-			return fmt.Errorf("listing secrets: %w", err)
-		}
-
-		for _, secret := range output.SecretList {
-			if !hasSecrets {
-				fmt.Fprint(tw, "NAME\tARN\n")
-
-				hasSecrets = true
+			if !listSecrets && getSecret == "" {
+				return cmd.Help()
 			}
 
-			fmt.Fprintf(tw, "%s\t%s\n", derefString(secret.Name), derefString(secret.ARN))
-		}
+			cfg, err := PrepareAWSConfig(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			client := secrets.NewClient(cfg)
+
+			if listSecrets {
+				return secrets.ListSecrets(cmd.Context(), client, cmd.OutOrStdout())
+			}
+
+			return secrets.GetSecretValue(cmd.Context(), client, getSecret, cmd.OutOrStdout())
+		},
 	}
 
-	if !hasSecrets {
-		_, _ = fmt.Fprintln(os.Stderr, "No secrets found.")
+	cmd.Flags().BoolVar(&listSecrets, "list-secrets", false, "List all secrets")
+	cmd.Flags().StringVar(&getSecret, "get-secret-value", "", "Retrieve the value of a secret")
 
-		return nil
-	}
+	cmd.MarkFlagsMutuallyExclusive("list-secrets", "get-secret-value")
 
-	return tw.Flush()
+	return cmd
 }

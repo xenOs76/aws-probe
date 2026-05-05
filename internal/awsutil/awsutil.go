@@ -1,4 +1,4 @@
-package cmd
+package awsutil
 
 import (
 	"context"
@@ -11,35 +11,33 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 )
 
+// DefaultAWSRegion is the default region used when no region is specified.
+var DefaultAWSRegion = func() string {
+	if region := os.Getenv("AWS_DEFAULT_REGION"); region != "" {
+		return region
+	}
+
+	return "eu-central-1"
+}()
+
 // AuthMethodType represents the type of AWS authentication being used.
 type AuthMethodType string
 
 const (
-	// AuthMethodEC2Role indicates the use of an EC2 IAM role via IMDS.
-	AuthMethodEC2Role AuthMethodType = "ec2_iam_role"
-	// AuthMethodEKSIRSA indicates the use of EKS IAM Roles for Service Accounts.
-	AuthMethodEKSIRSA AuthMethodType = "eks_irsa"
-	// AuthMethodSSO indicates the use of AWS IAM Identity Center (SSO).
-	AuthMethodSSO AuthMethodType = "aws_sso"
-	// AuthMethodStaticCreds indicates the use of static credentials via environment variables.
+	AuthMethodEC2Role     AuthMethodType = "ec2_iam_role"
+	AuthMethodEKSIRSA     AuthMethodType = "eks_irsa"
+	AuthMethodSSO         AuthMethodType = "aws_sso"
 	AuthMethodStaticCreds AuthMethodType = "static_credentials"
-	// AuthMethodAWSProfile indicates the use of a named AWS profile.
-	AuthMethodAWSProfile AuthMethodType = "aws_profile"
-	// AuthMethodECS indicates the use of an ECS task role.
-	AuthMethodECS AuthMethodType = "ecs_task_role"
-	// AuthMethodUnknown indicates that the authentication method could not be determined.
-	AuthMethodUnknown AuthMethodType = "unknown"
+	AuthMethodAWSProfile  AuthMethodType = "aws_profile"
+	AuthMethodECS         AuthMethodType = "ecs_task_role"
+	AuthMethodUnknown     AuthMethodType = "unknown"
 )
 
 // AuthMethod contains information about the detected AWS authentication method.
 type AuthMethod struct {
-	// Type is the categorized type of authentication.
-	Type AuthMethodType
-	// IdentitySource is a human-readable description of where the identity comes from.
+	Type           AuthMethodType
 	IdentitySource string
-	// RoleARN is the ARN of the IAM role being used, if available.
-	RoleARN string
-	// ServiceAccount is the name of the EKS service account, if applicable.
+	RoleARN        string
 	ServiceAccount string
 }
 
@@ -78,7 +76,7 @@ func IsCredentialError(err error) bool {
 }
 
 // LoadAWSConfig loads the AWS configuration.
-var LoadAWSConfig = func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
+func LoadAWSConfig(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
 	if err != nil {
 		return cfg, err
@@ -92,11 +90,11 @@ var LoadAWSConfig = func(ctx context.Context, optFns ...func(*config.LoadOptions
 }
 
 // EnsureCredentials checks if AWS credentials are available.
-var EnsureCredentials = func() error {
+func EnsureCredentials() error {
 	auth := DetectAuthMethod()
 
 	if auth.Type == AuthMethodUnknown {
-		printCredentialsMessage()
+		_, _ = fmt.Fprint(os.Stderr, noCredentialsMessage)
 
 		return errors.New("checking credentials: no credentials available")
 	}
@@ -105,7 +103,7 @@ var EnsureCredentials = func() error {
 }
 
 // PrepareAWSConfig combines EnsureCredentials and LoadAWSConfig.
-var PrepareAWSConfig = func(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
+func PrepareAWSConfig(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
 	if err := EnsureCredentials(); err != nil {
 		return aws.Config{}, err
 	}
@@ -118,12 +116,7 @@ var PrepareAWSConfig = func(ctx context.Context, optFns ...func(*config.LoadOpti
 	return cfg, nil
 }
 
-// printCredentialsMessage prints the no credentials message to stderr.
-func printCredentialsMessage() {
-	_, _ = fmt.Fprint(os.Stderr, noCredentialsMessage)
-}
-
-// DetectAuthMethod detects the current AWS authentication method based on environment variables.
+// DetectAuthMethod detects the current AWS authentication method.
 func DetectAuthMethod() AuthMethod {
 	if os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE") != "" {
 		return AuthMethod{
@@ -232,4 +225,31 @@ func isSSOEnvironment() bool {
 		os.Getenv("AWS_SSO_TOKEN") != "" ||
 		os.Getenv("AWS_SSO_ACCOUNT_ID") != "" ||
 		os.Getenv("AWS_SSO_ROLE_NAME") != ""
+}
+
+// DerefString dereferences a string pointer, returning an empty string if nil.
+func DerefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+
+	return *s
+}
+
+// DerefInt32 dereferences an int32 pointer, returning 0 if nil.
+func DerefInt32(i *int32) int32 {
+	if i == nil {
+		return 0
+	}
+
+	return *i
+}
+
+// DerefInt64 dereferences an int64 pointer, returning 0 if nil.
+func DerefInt64(i *int64) int64 {
+	if i == nil {
+		return 0
+	}
+
+	return *i
 }

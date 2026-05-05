@@ -94,31 +94,69 @@ aws-probe whoami
 
 ### MSK Operations
 
-List clusters and topics, or produce/consume messages using IAM authentication:
+List MSK clusters and topics, produce and consume messages.
 
 ```shell
-# List clusters
-aws-probe msk list-clusters
+# List all clusters
+aws-probe msk --list-clusters
 
-# Produce a message with a key
-aws-probe msk produce --topic my-topic --cluster-arn <ARN> --message "hello" --key "my-key"
+# List topics for a cluster
+aws-probe msk --list-topics <cluster-arn>
 
-# Consume from the beginning
-aws-probe msk consume --topic my-topic --cluster-arn <ARN> --from-beginning
+# Produce a message
+aws-probe msk --produce --topic <topic> --message "hello world" --cluster-arn <arn>
+
+# Consume messages from the beginning
+aws-probe msk --consume --topic <topic> --cluster-arn <arn> --from-beginning
 ```
 
-### S3 & Other Services
+### S3 Operations
+
+Manage S3 buckets and objects.
 
 ```shell
-# List S3 buckets
-aws-probe s3 list
+# List all buckets
+aws-probe s3 --list-buckets
+
+# List objects in a bucket
+aws-probe s3 --list-bucket my-bucket --path logs/ --recursive
+
+# Get object metadata
+aws-probe s3 --get-metadata my-bucket --key my-file.txt
+```
+
+### Secrets Manager
+
+List and retrieve secrets.
+
+```shell
+# List all secrets
+aws-probe secrets --list-secrets
+
+# Get secret value
+aws-probe secrets --get-secret-value my-secret-id
+```
+
+### SNS & SQS
+
+```shell
+# List SNS topics
+aws-probe sns --list-topics
+
+# List SNS subscriptions for a topic
+aws-probe sns --list-subscriptions <topic-arn>
 
 # List SQS queues
-aws-probe sqs list
-
-# List Secrets
-aws-probe secrets list
+aws-probe sqs --list-queues
 ```
+
+## Development
+
+### Pre-commit
+
+This project uses [pre-commit](https://pre-commit.com/) to maintain code quality. The canonical configuration is stored in `.pre-commit-config.yaml`.
+
+If you need personal local overrides, you can use `.pre-commit-config.local.yaml`, which is ignored by git.
 
 ## License
 

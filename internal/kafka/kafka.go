@@ -1,4 +1,4 @@
-package service
+package kafka
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	awsiam "github.com/twmb/franz-go/pkg/sasl/aws"
 )
 
-// KafkaConfig holds configuration for Kafka operations.
-type KafkaConfig struct {
+// Config holds configuration for Kafka operations.
+type Config struct {
 	// Brokers is a list of Kafka broker addresses.
 	Brokers []string
 	// Topic is the Kafka topic name.
@@ -43,16 +43,20 @@ type Record struct {
 	Offset int64
 }
 
-// KafkaService provides methods to interact with Kafka.
-type KafkaService struct {
+// Service provides methods to interact with Kafka.
+type Service struct {
 	logger        *slog.Logger
 	cfg           aws.Config
 	clientFactory func(...kgo.Opt) (*kgo.Client, error)
 }
 
-// NewKafkaService creates a new KafkaService.
-func NewKafkaService(cfg aws.Config, logger *slog.Logger) *KafkaService {
-	return &KafkaService{
+// NewService creates a new Service.
+func NewService(cfg aws.Config, logger *slog.Logger) *Service {
+	if logger == nil {
+		logger = slog.Default()
+	}
+
+	return &Service{
 		cfg:           cfg,
 		logger:        logger,
 		clientFactory: kgo.NewClient,
@@ -60,7 +64,7 @@ func NewKafkaService(cfg aws.Config, logger *slog.Logger) *KafkaService {
 }
 
 // Produce sends a message to the specified Kafka topic.
-func (s *KafkaService) Produce(ctx context.Context, kcfg KafkaConfig, key, value []byte) error {
+func (s *Service) Produce(ctx context.Context, kcfg Config, key, value []byte) error {
 	opts, err := s.getClientOptions(ctx, kcfg)
 	if err != nil {
 		return err
@@ -106,7 +110,7 @@ func (s *KafkaService) Produce(ctx context.Context, kcfg KafkaConfig, key, value
 }
 
 type kgoLogger struct {
-	s *KafkaService
+	s *Service
 }
 
 func (*kgoLogger) Level() kgo.LogLevel {
@@ -127,9 +131,9 @@ func (l *kgoLogger) Log(level kgo.LogLevel, msg string, keyvals ...any) {
 }
 
 // Consume reads messages from the specified Kafka topic.
-func (s *KafkaService) Consume(
+func (s *Service) Consume(
 	ctx context.Context,
-	kcfg KafkaConfig,
+	kcfg Config,
 	callback func(*Record),
 ) error {
 	opts, err := s.getClientOptions(ctx, kcfg)
@@ -178,7 +182,7 @@ func (s *KafkaService) Consume(
 	}
 }
 
-func (s *KafkaService) getClientOptions(ctx context.Context, kcfg KafkaConfig) ([]kgo.Opt, error) {
+func (s *Service) getClientOptions(ctx context.Context, kcfg Config) ([]kgo.Opt, error) {
 	opts := []kgo.Opt{
 		kgo.SeedBrokers(kcfg.Brokers...),
 	}

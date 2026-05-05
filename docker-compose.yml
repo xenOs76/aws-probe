@@ -1,0 +1,13 @@
+services:
+  ministack:
+    image: ministackorg/ministack:latest
+    container_name: aws-probe-ministack
+    ports:
+      - "4566:4566"
+    environment:
+      - MINISTACK_LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_ministack/health"]
+      interval: 1s
+      timeout: 3s
+      retries: 10

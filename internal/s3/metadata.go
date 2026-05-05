@@ -1,55 +1,58 @@
-package cmd
+package s3
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
+	"io"
 	"strings"
 	"text/tabwriter"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/spf13/cobra"
+	"github.com/xenos76/aws-probe/internal/awsutil"
 )
 
 const metadataFieldFormat = "%-24s%s\n"
 
-func newGetObjectMetadataCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "get-object-metadata [bucket-name] [key]",
-		Short: "Get metadata for an S3 object",
-		Long: `Get metadata for an S3 object. Displays all available
-metadata information including size, content type, storage class,
-and encryption details.`,
-		Args: cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runGetObjectMetadata(cmd.Context(), args[0], args[1])
-		},
-	}
+// ObjectHeader defines the interface for getting S3 object metadata.
+type ObjectHeader interface {
+	HeadObject(
+		ctx context.Context,
+		params *s3.HeadObjectInput,
+		optFns ...func(*s3.Options),
+	) (*s3.HeadObjectOutput, error)
 }
 
-func runGetObjectMetadata(ctx context.Context, bucket, key string) error {
-	cfg, err := PrepareAWSConfig(ctx)
-	if err != nil {
-		return err
-	}
-
-	s3Client := s3.NewFromConfig(cfg)
-	kmsClient := kms.NewFromConfig(cfg)
-
-	return getObjectMetadata(ctx, bucket, key, s3Client, kmsClient, kmsClient)
+// KMSKeyDescriber defines the interface for describing KMS keys.
+type KMSKeyDescriber interface {
+	DescribeKey(
+		ctx context.Context,
+		params *kms.DescribeKeyInput,
+		optFns ...func(*kms.Options),
+	) (*kms.DescribeKeyOutput, error)
 }
 
-// getObjectMetadata retrieves and displays metadata for an S3 object.
-func getObjectMetadata(
+// KMSAliasesLister defines the interface for listing KMS aliases.
+type KMSAliasesLister interface {
+	ListAliases(
+		ctx context.Context,
+		params *kms.ListAliasesInput,
+		optFns ...func(*kms.Options),
+	) (*kms.ListAliasesOutput, error)
+}
+
+// GetObjectMetadata retrieves and displays metadata for an S3 object.
+func GetObjectMetadata(
 	ctx context.Context,
 	bucket string,
 	key string,
-	s3Client s3ObjectHeader,
-	kmsClient kmsKeyDescriber,
-	kmsAliasesClient kmsAliasesLister,
+	s3Client ObjectHeader,
+	kmsClient KMSKeyDescriber,
+	kmsAliasesClient KMSAliasesLister,
+	w io.Writer,
 ) error {
 	output, err := s3Client.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: &bucket,
@@ -59,7 +62,7 @@ func getObjectMetadata(
 		return fmt.Errorf("getting S3 object metadata: %w", err)
 	}
 
-	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 
 	displayGeneralInfo(tw, key, output)
 	displayContentInfo(tw, output)
@@ -73,11 +76,15 @@ func getObjectMetadata(
 	return tw.Flush()
 }
 
-// displayGeneralInfo prints general information about the object.
+// NewKMSClient creates a new KMS client.
+func NewKMSClient(cfg aws.Config) *kms.Client {
+	return kms.NewFromConfig(cfg)
+}
+
 func displayGeneralInfo(tw *tabwriter.Writer, key string, output *s3.HeadObjectOutput) {
 	fmt.Fprintln(tw, "\nGENERAL")
 	fmt.Fprintf(tw, metadataFieldFormat, "KEY", key)
-	fmt.Fprintf(tw, metadataFieldFormat, "SIZE", formatSize(derefInt64(output.ContentLength)))
+	fmt.Fprintf(tw, metadataFieldFormat, "SIZE", FormatSize(awsutil.DerefInt64(output.ContentLength)))
 	fmt.Fprintf(tw, metadataFieldFormat, "ETAG", formatETag(output.ETag))
 
 	if output.DeleteMarker != nil && *output.DeleteMarker {
@@ -85,15 +92,14 @@ func displayGeneralInfo(tw *tabwriter.Writer, key string, output *s3.HeadObjectO
 	}
 
 	if output.Expiration != nil {
-		fmt.Fprintf(tw, metadataFieldFormat, "EXPIRATION", derefString(output.Expiration))
+		fmt.Fprintf(tw, metadataFieldFormat, "EXPIRATION", awsutil.DerefString(output.Expiration))
 	}
 
 	if output.Restore != nil {
-		fmt.Fprintf(tw, metadataFieldFormat, "RESTORE", derefString(output.Restore))
+		fmt.Fprintf(tw, metadataFieldFormat, "RESTORE", awsutil.DerefString(output.Restore))
 	}
 }
 
-// displayContentInfo prints content-related information about the object.
 func displayContentInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmt.Fprintln(tw, "\nCONTENT")
 	fmtField(tw, "CONTENT-TYPE", output.ContentType)
@@ -109,11 +115,10 @@ func displayContentInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	}
 
 	if output.ExpiresString != nil {
-		fmt.Fprintf(tw, metadataFieldFormat, "EXPIRES (STRING)", derefString(output.ExpiresString))
+		fmt.Fprintf(tw, metadataFieldFormat, "EXPIRES (STRING)", awsutil.DerefString(output.ExpiresString))
 	}
 }
 
-// displayStorageInfo prints storage-related information about the object.
 func displayStorageInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmt.Fprintln(tw, "\nSTORAGE")
 
@@ -134,13 +139,12 @@ func displayStorageInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	}
 }
 
-// displayEncryptionInfo prints encryption-related information about the object.
 func displayEncryptionInfo(
 	ctx context.Context,
 	tw *tabwriter.Writer,
 	output *s3.HeadObjectOutput,
-	kmsClient kmsKeyDescriber,
-	kmsAliasesClient kmsAliasesLister,
+	kmsClient KMSKeyDescriber,
+	kmsAliasesClient KMSAliasesLister,
 ) {
 	fmt.Fprintln(tw, "\nENCRYPTION")
 
@@ -159,7 +163,7 @@ func displayEncryptionInfo(
 	fmtField(tw, "SSE-CUSTOMER KEY MD5", output.SSECustomerKeyMD5)
 
 	if output.SSEKMSKeyId != nil {
-		kmsKeyID := derefString(output.SSEKMSKeyId)
+		kmsKeyID := awsutil.DerefString(output.SSEKMSKeyId)
 		fmt.Fprintf(tw, metadataFieldFormat, "SSE-KMS KEY ID", kmsKeyID)
 
 		kmsKeyARN, err := getKMSKeyARN(ctx, kmsClient, kmsKeyID)
@@ -174,7 +178,6 @@ func displayEncryptionInfo(
 	}
 }
 
-// displayVersioningInfo prints versioning-related information about the object.
 func displayVersioningInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmt.Fprintln(tw, "\nVERSIONING")
 	fmtField(tw, "VERSION ID", output.VersionId)
@@ -185,7 +188,6 @@ func displayVersioningInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	}
 }
 
-// displayObjectLockInfo prints object lock-related information about the object.
 func displayObjectLockInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	hasLockInfo := output.ObjectLockLegalHoldStatus != "" ||
 		output.ObjectLockMode != "" ||
@@ -212,7 +214,6 @@ func displayObjectLockInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	}
 }
 
-// displayOtherInfo prints other miscellaneous information about the object.
 func displayOtherInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	hasOtherInfo := output.WebsiteRedirectLocation != nil ||
 		output.ChecksumCRC32 != nil ||
@@ -239,7 +240,6 @@ func displayOtherInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmtField(tw, "CHECKSUM SHA256", output.ChecksumSHA256)
 }
 
-// displayCustomMetadata prints custom metadata key-value pairs.
 func displayCustomMetadata(tw *tabwriter.Writer, metadata map[string]string) {
 	if len(metadata) == 0 {
 		return
@@ -252,14 +252,12 @@ func displayCustomMetadata(tw *tabwriter.Writer, metadata map[string]string) {
 	}
 }
 
-// fmtField prints a labeled field if the value is not nil or empty.
 func fmtField(tw *tabwriter.Writer, label string, value *string) {
 	if value != nil && *value != "" {
 		fmt.Fprintf(tw, metadataFieldFormat, label, *value)
 	}
 }
 
-// formatETag removes quotes from the ETag string.
 func formatETag(etag *string) string {
 	if etag == nil {
 		return "-"
@@ -268,7 +266,6 @@ func formatETag(etag *string) string {
 	return strings.Trim(*etag, `"`)
 }
 
-// formatTime formats a time pointer to a human-readable string.
 func formatTime(t *time.Time) string {
 	if t == nil {
 		return "-"
@@ -277,26 +274,20 @@ func formatTime(t *time.Time) string {
 	return t.Format("2006-01-02 15:04:05 MST")
 }
 
-// getKMSKeyARN retrieves the ARN of a KMS key.
-func getKMSKeyARN(ctx context.Context, api kmsKeyDescriber, keyID string) (string, error) {
-	input := &kms.DescribeKeyInput{
-		KeyId: &keyID,
-	}
-
-	output, err := api.DescribeKey(ctx, input)
+func getKMSKeyARN(ctx context.Context, api KMSKeyDescriber, keyID string) (string, error) {
+	output, err := api.DescribeKey(ctx, &kms.DescribeKeyInput{KeyId: &keyID})
 	if err != nil {
 		return "", err
 	}
 
 	if output.KeyMetadata != nil && output.KeyMetadata.Arn != nil {
-		return derefString(output.KeyMetadata.Arn), nil
+		return awsutil.DerefString(output.KeyMetadata.Arn), nil
 	}
 
 	return "", nil
 }
 
-// getKMSKeyName retrieves the alias name of a KMS key.
-func getKMSKeyName(ctx context.Context, api kmsAliasesLister, keyID string) (string, error) {
+func getKMSKeyName(ctx context.Context, api KMSAliasesLister, keyID string) (string, error) {
 	paginator := kms.NewListAliasesPaginator(api, &kms.ListAliasesInput{})
 
 	for paginator.HasMorePages() {
@@ -308,7 +299,7 @@ func getKMSKeyName(ctx context.Context, api kmsAliasesLister, keyID string) (str
 		for _, alias := range output.Aliases {
 			if alias.TargetKeyId != nil && *alias.TargetKeyId == keyID {
 				if alias.AliasName != nil {
-					return strings.TrimPrefix(derefString(alias.AliasName), "alias/"), nil
+					return strings.TrimPrefix(awsutil.DerefString(alias.AliasName), "alias/"), nil
 				}
 			}
 		}

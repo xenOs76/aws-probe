@@ -1,89 +1,28 @@
 package cmd
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"text/tabwriter"
-
-	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/spf13/cobra"
+	"github.com/xenos76/aws-probe/internal/awsutil"
+	"github.com/xenos76/aws-probe/internal/whoami"
 )
-
-// stsIdentityGetter defines the interface for calling STS GetCallerIdentity.
-type stsIdentityGetter interface {
-	GetCallerIdentity(
-		ctx context.Context,
-		params *sts.GetCallerIdentityInput,
-		optFns ...func(*sts.Options),
-	) (*sts.GetCallerIdentityOutput, error)
-}
 
 // newWhoamiCmd creates the whoami command.
 func newWhoamiCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "whoami",
 		Short: "Display the current AWS caller identity",
-		Long: `Calls AWS STS GetCallerIdentity and displays the Account,
-ARN, and UserId associated with the currently configured
-AWS credentials. Also detects and displays the authentication
-method used (EC2 role, EKS IRSA, SSO, etc.).`,
+		Long: `Display information about the current AWS caller identity,
+including the account ID, IAM ARN, and user ID.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			ctx := cmd.Context()
-
-			cfg, err := LoadAWSConfig(ctx)
+			cfg, err := PrepareAWSConfig(cmd.Context())
 			if err != nil {
-				return fmt.Errorf("loading AWS config: %w", err)
+				return err
 			}
 
-			client := sts.NewFromConfig(cfg)
+			client := whoami.NewSTSClient(cfg)
+			auth := awsutil.DetectAuthMethod()
 
-			return runWhoami(ctx, client)
+			return whoami.DisplayCallerIdentity(cmd.Context(), client, auth, cmd.OutOrStdout())
 		},
 	}
-}
-
-// runWhoami executes the whoami command.
-func runWhoami(ctx context.Context, api stsIdentityGetter) error {
-	auth := DetectAuthMethod()
-
-	output, err := api.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
-	if err != nil {
-		if IsCredentialError(err) {
-			printCredentialsMessage()
-
-			return nil
-		}
-
-		return fmt.Errorf("calling STS GetCallerIdentity: %w", err)
-	}
-
-	fmt.Fprintf(os.Stderr, "Authentication: %s\n", auth.IdentitySource)
-
-	if auth.RoleARN != "" {
-		fmt.Fprintf(os.Stderr, "IAM Role: %s\n", auth.RoleARN)
-	}
-
-	if auth.ServiceAccount != "" {
-		fmt.Fprintf(os.Stderr, "Service Account: %s\n", auth.ServiceAccount)
-	}
-
-	_, _ = fmt.Fprintln(os.Stderr)
-
-	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-
-	fmt.Fprintf(tw, "Account:\t%s\n", derefString(output.Account))
-	fmt.Fprintf(tw, "Arn:\t%s\n", derefString(output.Arn))
-	fmt.Fprintf(tw, "UserId:\t%s\n", derefString(output.UserId))
-
-	return tw.Flush()
-}
-
-// derefString dereferences a string pointer, returning empty string if nil.
-func derefString(s *string) string {
-	if s == nil {
-		return ""
-	}
-
-	return *s
 }

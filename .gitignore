@@ -3,3 +3,18 @@ dist
 cover.out 
 coverage.out
 .scannerwork
+
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+# Use .pre-commit-config.local.yaml for personal local overrides
+.pre-commit-config.local.yaml
+
+terraform/.terraform*
+terraform/terraform.*
