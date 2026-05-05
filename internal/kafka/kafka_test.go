@@ -1,4 +1,4 @@
-package service
+package kafka
 
 import (
 	"context"
@@ -12,22 +12,22 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-func TestKafkaService_getClientOptions(t *testing.T) {
+func TestService_getClientOptions(t *testing.T) {
 	tests := []struct {
 		name    string
-		kcfg    KafkaConfig
+		kcfg    Config
 		wantErr bool
 	}{
 		{
 			name: "basic config",
-			kcfg: KafkaConfig{
+			kcfg: Config{
 				Brokers: []string{"localhost:9092"},
 			},
 			wantErr: false,
 		},
 		{
 			name: "with TLS",
-			kcfg: KafkaConfig{
+			kcfg: Config{
 				Brokers: []string{"localhost:9092"},
 				UseTLS:  true,
 			},
@@ -35,7 +35,7 @@ func TestKafkaService_getClientOptions(t *testing.T) {
 		},
 		{
 			name: "with IAM auth",
-			kcfg: KafkaConfig{
+			kcfg: Config{
 				Brokers: []string{"localhost:9092"},
 				Auth:    "iam",
 			},
@@ -45,7 +45,7 @@ func TestKafkaService_getClientOptions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewKafkaService(aws.Config{
+			s := NewService(aws.Config{
 				Credentials: aws.NewCredentialsCache(
 					aws.CredentialsProviderFunc(func(_ context.Context) (aws.Credentials, error) {
 						return aws.Credentials{
@@ -68,7 +68,7 @@ func TestKafkaService_getClientOptions(t *testing.T) {
 }
 
 func TestKafkaLogger(t *testing.T) {
-	s := NewKafkaService(aws.Config{}, slog.Default())
+	s := NewService(aws.Config{}, slog.Default())
 	l := &kgoLogger{s: s}
 	assert.Equal(t, kgo.LogLevelDebug, l.Level())
 	l.Log(kgo.LogLevelError, "test error")
@@ -77,25 +77,25 @@ func TestKafkaLogger(t *testing.T) {
 	l.Log(kgo.LogLevelDebug, "test debug")
 }
 
-func TestKafkaService_Produce_ClientError(t *testing.T) {
-	s := NewKafkaService(aws.Config{}, nil)
+func TestService_Produce_ClientError(t *testing.T) {
+	s := NewService(aws.Config{}, nil)
 	s.clientFactory = func(_ ...kgo.Opt) (*kgo.Client, error) {
 		return nil, errors.New("client error")
 	}
 
-	err := s.Produce(context.Background(), KafkaConfig{}, nil, nil)
+	err := s.Produce(context.Background(), Config{}, nil, nil)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "client error")
 }
 
-func TestKafkaService_Consume_ClientError(t *testing.T) {
-	s := NewKafkaService(aws.Config{}, nil)
+func TestService_Consume_ClientError(t *testing.T) {
+	s := NewService(aws.Config{}, nil)
 	s.clientFactory = func(_ ...kgo.Opt) (*kgo.Client, error) {
 		return nil, errors.New("client error")
 	}
 
-	err := s.Consume(context.Background(), KafkaConfig{}, nil)
+	err := s.Consume(context.Background(), Config{}, nil)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "client error")

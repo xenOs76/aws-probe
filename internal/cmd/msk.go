@@ -3,33 +3,11 @@ package cmd
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log/slog"
-	"os"
-	"strings"
-	"text/tabwriter"
+	"io"
 
-	"github.com/aws/aws-sdk-go-v2/service/kafka"
-	kafkatypes "github.com/aws/aws-sdk-go-v2/service/kafka/types"
 	"github.com/spf13/cobra"
-	"github.com/xenos76/aws-probe/internal/service"
+	"github.com/xenos76/aws-probe/internal/msk"
 )
-
-// newMskCmd creates the MSK command.
-func newMskCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "msk",
-		Short: "List MSK clusters and topics",
-		Long:  `List MSK clusters and topics in the current AWS account.`,
-	}
-
-	cmd.AddCommand(newListClustersCmd())
-	cmd.AddCommand(newListTopicsCmd())
-	cmd.AddCommand(newProduceCmd())
-	cmd.AddCommand(newConsumeCmd())
-
-	return cmd
-}
 
 var (
 	mskBrokers    string
@@ -45,7 +23,51 @@ var (
 	mskVerbose    bool
 )
 
-// addCommonKafkaFlags adds common Kafka flags to the given command.
+// newMskCmd creates the MSK command.
+func newMskCmd() *cobra.Command {
+	var (
+		listClustersFlag bool
+		listTopicsFlag   string
+		produceFlag      bool
+		consumeFlag      bool
+	)
+
+	cmd := &cobra.Command{
+		Use:   "msk",
+		Short: "Manage MSK resources",
+		Long:  `List MSK clusters and topics, produce and consume messages.`,
+		Example: `  # List all clusters
+  aws-probe msk --list-clusters
+
+  # List topics for a cluster
+  aws-probe msk --list-topics <cluster-arn>
+
+  # Produce a message
+  aws-probe msk --produce --topic <topic> --message <msg> --cluster-arn <arn>
+
+  # Consume messages
+  aws-probe msk --consume --topic <topic> --cluster-arn <arn> --from-beginning`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return handleMskRun(cmd, args, listClustersFlag, listTopicsFlag, produceFlag, consumeFlag)
+		},
+	}
+
+	cmd.Flags().BoolVar(&listClustersFlag, "list-clusters", false, "List all MSK clusters")
+	cmd.Flags().StringVar(&listTopicsFlag, "list-topics", "", "List topics for the specified cluster ARN")
+	cmd.Flags().BoolVar(&produceFlag, "produce", false, "Produce a message to a topic")
+	cmd.Flags().BoolVar(&consumeFlag, "consume", false, "Consume messages from a topic")
+
+	addCommonKafkaFlags(cmd)
+	cmd.Flags().StringVar(&mskMessage, "message", "", "Message to produce")
+	cmd.Flags().StringVar(&mskKey, "key", "", "Key for the message")
+	cmd.Flags().StringVar(&mskGroup, "group", "", "Consumer group ID")
+	cmd.Flags().BoolVar(&mskFromStart, "from-beginning", false, "Start consuming from the beginning")
+
+	cmd.MarkFlagsMutuallyExclusive("list-clusters", "list-topics", "produce", "consume")
+
+	return cmd
+}
+
 func addCommonKafkaFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&mskBrokers, "brokers", "", "Comma-separated list of Kafka brokers")
 	cmd.Flags().StringVar(&mskClusterArn, "cluster-arn", "", "MSK cluster ARN to fetch brokers from")
@@ -56,311 +78,121 @@ func addCommonKafkaFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&mskVerbose, "verbose", false, "Enable verbose logging")
 }
 
-// newProduceCmd creates the produce subcommand.
-func newProduceCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "produce [topic] [message]",
-		Short: "Produce a message to a Kafka topic",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				mskTopic = args[0]
-			}
+// handleMskRun handles the execution logic for the MSK command.
+//
+//nolint:revive // listClusters is a control flag derived from CLI arguments
+func handleMskRun(
+	cmd *cobra.Command,
+	args []string,
+	listClusters bool,
+	listTopics string,
+	produce bool,
+	consume bool,
+) error {
+	ctx := cmd.Context()
+	out := cmd.OutOrStdout()
 
-			if len(args) > 1 {
-				mskMessage = args[1]
-			}
-
-			if len(args) > 2 {
-				mskKey = args[2]
-			}
-
-			if mskTopic == "" {
-				return errors.New("topic is required")
-			}
-
-			if mskMessage == "" {
-				return errors.New("message is required")
-			}
-
-			return runProduce(cmd.Context())
-		},
-	}
-
-	addCommonKafkaFlags(cmd)
-	cmd.Flags().StringVar(&mskMessage, "message", "", "Message to produce")
-	cmd.Flags().StringVar(&mskKey, "key", "", "Key for the message")
-
-	return cmd
-}
-
-// newConsumeCmd creates the consume subcommand.
-func newConsumeCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "consume [topic]",
-		Short: "Consume messages from a Kafka topic",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				mskTopic = args[0]
-			}
-
-			if mskTopic == "" {
-				return errors.New("topic is required")
-			}
-
-			return runConsume(cmd.Context())
-		},
-	}
-
-	addCommonKafkaFlags(cmd)
-	cmd.Flags().StringVar(&mskGroup, "group", "", "Consumer group ID")
-	cmd.Flags().BoolVar(&mskFromStart, "from-beginning", false, "Start consuming from the beginning")
-
-	return cmd
-}
-
-// newListClustersCmd creates the list-clusters subcommand.
-func newListClustersCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "list-clusters",
-		Short: "List MSK clusters",
-		Long:  `List all MSK clusters in the current AWS account.`,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runListClusters(cmd.Context())
-		},
-	}
-}
-
-// newListTopicsCmd creates the list-topics subcommand.
-func newListTopicsCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "list-topics [cluster-arn]",
-		Short: "List MSK topics",
-		Long:  `List topics for an MSK cluster. Requires cluster ARN as argument.`,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runListTopics(cmd.Context(), args[0])
-		},
-	}
-}
-
-// runListClusters executes the list-clusters command.
-func runListClusters(ctx context.Context) error {
-	cfg, err := PrepareAWSConfig(ctx)
-	if err != nil {
-		return err
-	}
-
-	return listClusters(ctx, kafka.NewFromConfig(cfg))
-}
-
-// runListTopics executes the list-topics command.
-func runListTopics(ctx context.Context, clusterArn string) error {
-	cfg, err := PrepareAWSConfig(ctx)
-	if err != nil {
-		return err
-	}
-
-	return listTopics(ctx, clusterArn, kafka.NewFromConfig(cfg))
-}
-
-// listClusters lists MSK clusters using the provided API client.
-func listClusters(ctx context.Context, api kafkaClustersLister) error {
-	var allClusters []kafkatypes.Cluster
-
-	input := &kafka.ListClustersV2Input{}
-	for {
-		output, err := api.ListClustersV2(ctx, input)
+	if listClusters || listTopics != "" {
+		cfg, err := PrepareAWSConfig(ctx)
 		if err != nil {
-			return fmt.Errorf("listing MSK clusters: %w", err)
+			return err
 		}
 
-		allClusters = append(allClusters, output.ClusterInfoList...)
-
-		if output.NextToken == nil || *output.NextToken == "" {
-			break
+		client := msk.NewClient(cfg)
+		if listClusters {
+			return msk.ListClusters(ctx, client, out)
 		}
 
-		input.NextToken = output.NextToken
+		return msk.ListTopics(ctx, listTopics, client, out)
 	}
 
-	if len(allClusters) == 0 {
-		_, _ = fmt.Fprintln(os.Stderr, "No MSK clusters found.")
-
-		return nil
+	if produce {
+		return handleMskProduce(ctx, args, out)
 	}
 
-	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-
-	fmt.Fprint(tw, "CLUSTER NAME\tARN\tSTATUS\n")
-
-	for _, cluster := range allClusters {
-		fmt.Fprintf(tw, "%s\t%s\t%s\n",
-			derefString(cluster.ClusterName),
-			derefString(cluster.ClusterArn),
-			cluster.State,
-		)
+	if consume {
+		return handleMskConsume(ctx, args, out)
 	}
 
-	return tw.Flush()
+	return cmd.Help()
 }
 
-// listTopics lists MSK topics for a given cluster using the provided API client.
-func listTopics(ctx context.Context, clusterArn string, api kafkaTopicsLister) error {
-	var allTopics []kafkatypes.TopicInfo
+func handleMskProduce(ctx context.Context, args []string, out io.Writer) error {
+	topic := mskTopic
+	message := mskMessage
+	key := mskKey
 
-	input := &kafka.ListTopicsInput{
-		ClusterArn: &clusterArn,
+	if len(args) > 0 {
+		topic = args[0]
 	}
 
-	for {
-		output, err := api.ListTopics(ctx, input)
-		if err != nil {
-			return fmt.Errorf("listing MSK topics: %w", err)
-		}
-
-		allTopics = append(allTopics, output.Topics...)
-
-		if output.NextToken == nil || *output.NextToken == "" {
-			break
-		}
-
-		input.NextToken = output.NextToken
+	if len(args) > 1 {
+		message = args[1]
 	}
 
-	if len(allTopics) == 0 {
-		_, _ = fmt.Fprintln(os.Stderr, "No topics found.")
-
-		return nil
+	if len(args) > 2 {
+		key = args[2]
 	}
 
-	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-
-	fmt.Fprint(tw, "TOPIC NAME\tPARTITIONS\tREPLICATION\n")
-
-	for _, topic := range allTopics {
-		fmt.Fprintf(tw, "%s\t%d\t%d\n",
-			derefString(topic.TopicName),
-			derefInt32(topic.PartitionCount),
-			derefInt32(topic.ReplicationFactor),
-		)
+	if topic == "" {
+		return errors.New("topic is required")
 	}
 
-	return tw.Flush()
-}
+	if message == "" {
+		return errors.New("message is required")
+	}
 
-// runProduce executes the produce command.
-func runProduce(ctx context.Context) error {
 	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
 		return err
 	}
 
-	brokers, err := resolveBrokers(ctx, kafka.NewFromConfig(cfg))
+	brokers, err := msk.ResolveBrokers(ctx, mskBrokers, mskClusterArn, mskAuth, mskTLS, msk.NewClient(cfg))
 	if err != nil {
 		return err
 	}
 
-	logger := slog.Default()
-	if mskVerbose {
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	}
-
-	svc := service.NewKafkaService(cfg, logger)
-	kcfg := service.KafkaConfig{
+	return msk.Produce(ctx, cfg, msk.ProduceConfig{
 		Brokers: brokers,
-		Topic:   mskTopic,
+		Topic:   topic,
 		Auth:    mskAuth,
 		UseTLS:  mskTLS,
 		Acks:    mskAcks,
-	}
-
-	var key []byte
-	if mskKey != "" {
-		key = []byte(mskKey)
-	}
-
-	return svc.Produce(ctx, kcfg, key, []byte(mskMessage))
+		Key:     key,
+		Message: message,
+		Verbose: mskVerbose,
+	}, out)
 }
 
-// runConsume executes the consume command.
-func runConsume(ctx context.Context) error {
+func handleMskConsume(ctx context.Context, args []string, out io.Writer) error {
+	topic := mskTopic
+
+	if len(args) > 0 {
+		topic = args[0]
+	}
+
+	if topic == "" {
+		return errors.New("topic is required")
+	}
+
 	cfg, err := PrepareAWSConfig(ctx)
 	if err != nil {
 		return err
 	}
 
-	brokers, err := resolveBrokers(ctx, kafka.NewFromConfig(cfg))
+	brokers, err := msk.ResolveBrokers(ctx, mskBrokers, mskClusterArn, mskAuth, mskTLS, msk.NewClient(cfg))
 	if err != nil {
 		return err
 	}
 
-	logger := slog.Default()
-
-	if mskVerbose {
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	}
-
-	svc := service.NewKafkaService(cfg, logger)
-
-	kcfg := service.KafkaConfig{
+	return msk.Consume(ctx, cfg, msk.ConsumeConfig{
 		Brokers:       brokers,
-		Topic:         mskTopic,
+		Topic:         topic,
 		Auth:          mskAuth,
 		UseTLS:        mskTLS,
 		Acks:          mskAcks,
 		Group:         mskGroup,
 		FromBeginning: mskFromStart,
-	}
-
-	return svc.Consume(ctx, kcfg, func(r *service.Record) {
-		fmt.Printf("Partition: %d | Offset: %d | Key: %s | Value: %s\n",
-			r.Partition, r.Offset, string(r.Key), string(r.Value))
-	})
-}
-
-// resolveBrokers resolves Kafka brokers from flags or MSK cluster ARN.
-func resolveBrokers(ctx context.Context, api kafkaBrokersGetter) ([]string, error) {
-	if mskBrokers != "" {
-		return strings.Split(mskBrokers, ","), nil
-	}
-
-	if mskClusterArn == "" {
-		return nil, errors.New("either --brokers or --cluster-arn is required")
-	}
-
-	input := &kafka.GetBootstrapBrokersInput{
-		ClusterArn: &mskClusterArn,
-	}
-
-	result, err := api.GetBootstrapBrokers(ctx, input)
-	if err != nil {
-		return nil, fmt.Errorf("getting bootstrap brokers: %w", err)
-	}
-
-	var brokerString string
-
-	switch mskAuth {
-	case "iam":
-		if result.BootstrapBrokerStringSaslIam == nil {
-			return nil, errors.New("cluster does not support IAM authentication")
-		}
-
-		brokerString = *result.BootstrapBrokerStringSaslIam
-	default:
-		if mskTLS {
-			if result.BootstrapBrokerStringTls == nil {
-				return nil, errors.New("cluster does not support TLS")
-			}
-
-			brokerString = *result.BootstrapBrokerStringTls
-		} else {
-			if result.BootstrapBrokerString == nil {
-				return nil, errors.New("cluster does not support plaintext")
-			}
-
-			brokerString = *result.BootstrapBrokerString
-		}
-	}
-
-	return strings.Split(brokerString, ","), nil
+		Verbose:       mskVerbose,
+	}, out)
 }

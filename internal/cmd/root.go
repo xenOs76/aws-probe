@@ -4,7 +4,12 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/xenos76/aws-probe/internal/awsutil"
 )
+
+// PrepareAWSConfig is a variable that points to awsutil.PrepareAWSConfig.
+// It is a variable to allow mocking in tests.
+var PrepareAWSConfig = awsutil.PrepareAWSConfig
 
 // DefaultAWSRegion is the default region used when no region is specified.
 var DefaultAWSRegion = func() string {
