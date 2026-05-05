@@ -68,6 +68,10 @@ func TestDetectAuthMethod(t *testing.T) {
 		"AWS_ACCESS_KEY_ID",
 		"AWS_SECRET_ACCESS_KEY",
 		"ECS_CONTAINER_METADATA_URI",
+		"AWS_SSO_START_URL",
+		"AWS_SSO_TOKEN",
+		"AWS_SSO_ACCOUNT_ID",
+		"AWS_SSO_ROLE_NAME",
 	}
 	backup := make(map[string]string)
 

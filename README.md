@@ -150,6 +150,14 @@ aws-probe sns --list-subscriptions <topic-arn>
 aws-probe sqs --list-queues
 ```
 
+## Development
+
+### Pre-commit
+
+This project uses [pre-commit](https://pre-commit.com/) to maintain code quality. The canonical configuration is stored in `.pre-commit-config.yaml`.
+
+If you need personal local overrides, you can use `.pre-commit-config.local.yaml`, which is ignored by git.
+
 ## License
 
 [MIT License](LICENSE)

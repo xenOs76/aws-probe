@@ -52,6 +52,10 @@ type Service struct {
 
 // NewService creates a new Service.
 func NewService(cfg aws.Config, logger *slog.Logger) *Service {
+	if logger == nil {
+		logger = slog.Default()
+	}
+
 	return &Service{
 		cfg:           cfg,
 		logger:        logger,

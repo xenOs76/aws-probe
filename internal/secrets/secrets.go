@@ -45,10 +45,12 @@ func ListSecrets(ctx context.Context, api Lister, w io.Writer) error {
 		}
 
 		for _, s := range output.SecretList {
-			if s.Name != nil {
-				allSecrets = append(allSecrets, *s.Name)
-				allArns = append(allArns, *s.ARN)
+			if s.Name == nil || s.ARN == nil {
+				continue
 			}
+
+			allSecrets = append(allSecrets, *s.Name)
+			allArns = append(allArns, *s.ARN)
 		}
 
 		if output.NextToken == nil || *output.NextToken == "" {

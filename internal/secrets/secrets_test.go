@@ -147,3 +147,28 @@ func TestGetSecretValue(t *testing.T) {
 		require.Contains(t, err.Error(), "api error")
 	})
 }
+
+func TestListSecrets_NilARN(t *testing.T) {
+	api := &mockSecretsAPI{
+		listSecretsFunc: func(_ context.Context, _ *secretsmanager.ListSecretsInput,
+			_ ...func(*secretsmanager.Options),
+		) (*secretsmanager.ListSecretsOutput, error) {
+			return &secretsmanager.ListSecretsOutput{
+				SecretList: []types.SecretListEntry{
+					{Name: aws.String("secret1"), ARN: nil},
+					{Name: aws.String("secret2"), ARN: aws.String("arn2")},
+				},
+			}, nil
+		},
+	}
+
+	var buf bytes.Buffer
+
+	err := ListSecrets(context.Background(), api, &buf)
+	require.NoError(t, err)
+
+	output := buf.String()
+	require.NotContains(t, output, "secret1")
+	require.Contains(t, output, "secret2")
+	require.Contains(t, output, "arn2")
+}

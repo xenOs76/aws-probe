@@ -151,6 +151,15 @@ func TestListBucket(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "no objects",
+			mockListObjectsV2: func(_ context.Context, _ *s3.ListObjectsV2Input,
+				_ ...func(*s3.Options),
+			) (*s3.ListObjectsV2Output, error) {
+				return &s3.ListObjectsV2Output{}, nil
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -167,9 +176,15 @@ func TestListBucket(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Contains(t, buf.String(), "KEY")
-			require.Contains(t, buf.String(), "folder1/")
-			require.Contains(t, buf.String(), "file1.txt")
+
+			if tt.name == "no objects" {
+				require.Contains(t, buf.String(), "No objects found.")
+				require.NotContains(t, buf.String(), "KEY")
+			} else {
+				require.Contains(t, buf.String(), "KEY")
+				require.Contains(t, buf.String(), "folder1/")
+				require.Contains(t, buf.String(), "file1.txt")
+			}
 		})
 	}
 }

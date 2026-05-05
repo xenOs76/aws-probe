@@ -95,7 +95,7 @@ func ListBucket(ctx context.Context, bucket, prefix string, recursive bool, api 
 			return fmt.Errorf("listing S3 objects: %w", err)
 		}
 
-		if !hasContent {
+		if !hasContent && (len(output.CommonPrefixes) > 0 || len(output.Contents) > 0) {
 			fmt.Fprint(tw, "KEY\tLAST MODIFIED\tSIZE\n")
 
 			hasContent = true

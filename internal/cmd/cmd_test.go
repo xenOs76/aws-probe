@@ -92,6 +92,11 @@ func TestCommandRunE_Error(t *testing.T) {
 		return aws.Config{}, errors.New("load error")
 	}
 
+	setFlag := func(t *testing.T, cmd *cobra.Command, name, value string) {
+		t.Helper()
+		require.NoError(t, cmd.Flags().Set(name, value))
+	}
+
 	tests := []struct {
 		name string
 		cmd  *cobra.Command
@@ -99,77 +104,77 @@ func TestCommandRunE_Error(t *testing.T) {
 	}{
 		{"sns --list-topics", func() *cobra.Command {
 			c := newSnsCmd()
-			_ = c.Flags().Set("list-topics", "true")
+			setFlag(t, c, "list-topics", "true")
 
 			return c
 		}(), []string{}},
 		{"sns --list-subscriptions", func() *cobra.Command {
 			c := newSnsCmd()
-			_ = c.Flags().Set("list-subscriptions", "arn")
+			setFlag(t, c, "list-subscriptions", "arn")
 
 			return c
 		}(), []string{}},
 		{"msk --list-clusters", func() *cobra.Command {
 			c := newMskCmd()
-			_ = c.Flags().Set("list-clusters", "true")
+			setFlag(t, c, "list-clusters", "true")
 
 			return c
 		}(), []string{}},
 		{"msk --list-topics", func() *cobra.Command {
 			c := newMskCmd()
-			_ = c.Flags().Set("list-topics", "arn")
+			setFlag(t, c, "list-topics", "arn")
 
 			return c
 		}(), []string{}},
 		{"msk --produce", func() *cobra.Command {
 			c := newMskCmd()
-			_ = c.Flags().Set("produce", "true")
-			_ = c.Flags().Set("topic", "t")
-			_ = c.Flags().Set("message", "m")
+			setFlag(t, c, "produce", "true")
+			setFlag(t, c, "topic", "t")
+			setFlag(t, c, "message", "m")
 
 			return c
 		}(), []string{}},
 		{"msk --consume", func() *cobra.Command {
 			c := newMskCmd()
-			_ = c.Flags().Set("consume", "true")
-			_ = c.Flags().Set("topic", "t")
+			setFlag(t, c, "consume", "true")
+			setFlag(t, c, "topic", "t")
 
 			return c
 		}(), []string{}},
 		{"secrets --list-secrets", func() *cobra.Command {
 			c := newSecretsCmd()
-			_ = c.Flags().Set("list-secrets", "true")
+			setFlag(t, c, "list-secrets", "true")
 
 			return c
 		}(), []string{}},
 		{"secrets --get-secret-value", func() *cobra.Command {
 			c := newSecretsCmd()
-			_ = c.Flags().Set("get-secret-value", "id")
+			setFlag(t, c, "get-secret-value", "id")
 
 			return c
 		}(), []string{}},
 		{"sqs --list-queues", func() *cobra.Command {
 			c := newSqsCmd()
-			_ = c.Flags().Set("list-queues", "true")
+			setFlag(t, c, "list-queues", "true")
 
 			return c
 		}(), []string{}},
 		{"s3 --list-buckets", func() *cobra.Command {
 			c := newS3Cmd()
-			_ = c.Flags().Set("list-buckets", "true")
+			setFlag(t, c, "list-buckets", "true")
 
 			return c
 		}(), []string{}},
 		{"s3 --list-bucket", func() *cobra.Command {
 			c := newS3Cmd()
-			_ = c.Flags().Set("list-bucket", "b")
+			setFlag(t, c, "list-bucket", "b")
 
 			return c
 		}(), []string{}},
 		{"s3 --get-metadata", func() *cobra.Command {
 			c := newS3Cmd()
-			_ = c.Flags().Set("get-metadata", "b")
-			_ = c.Flags().Set("key", "k")
+			setFlag(t, c, "get-metadata", "b")
+			setFlag(t, c, "key", "k")
 
 			return c
 		}(), []string{}},

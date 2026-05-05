@@ -13,7 +13,8 @@ devenv.local.yaml
 .direnv
 
 # pre-commit
-.pre-commit-config.yaml
+# Use .pre-commit-config.local.yaml for personal local overrides
+.pre-commit-config.local.yaml
 
 terraform/.terraform*
 terraform/terraform.*
