@@ -31,6 +31,8 @@ func TestNewSqsCmd(t *testing.T) {
 	require.NotNil(t, cmd)
 	assert.Equal(t, "sqs", cmd.Use)
 	assert.NotNil(t, cmd.Flags().Lookup("list-queues"))
+	assert.NotNil(t, cmd.Flags().Lookup("get-queue-url"))
+	assert.NotNil(t, cmd.Flags().Lookup("receive-message"))
 }
 
 func TestNewSecretsCmd(t *testing.T) {
@@ -70,7 +72,7 @@ func TestNewRootCmd(t *testing.T) {
 	require.NotNil(t, cmd)
 	assert.Equal(t, "aws-probe", cmd.Use)
 	assert.NotNil(t, cmd.Commands())
-	assert.Len(t, cmd.Commands(), 6)
+	assert.Len(t, cmd.Commands(), 7)
 }
 
 func TestNewSnsCmd(t *testing.T) {
@@ -80,6 +82,14 @@ func TestNewSnsCmd(t *testing.T) {
 	assert.Equal(t, "sns", cmd.Use)
 	assert.NotNil(t, cmd.Flags().Lookup("list-topics"))
 	assert.NotNil(t, cmd.Flags().Lookup("list-subscriptions"))
+}
+
+func TestNewCloudfrontCmd(t *testing.T) {
+	cmd := newCloudfrontCmd()
+
+	require.NotNil(t, cmd)
+	assert.Equal(t, "cloudfront", cmd.Use)
+	assert.NotNil(t, cmd.Flags().Lookup("list-certificates"))
 }
 
 //nolint:revive // maximum number of lines per function exceeded is acceptable for test case exhaustive coverage
@@ -102,6 +112,12 @@ func TestCommandRunE_Error(t *testing.T) {
 		cmd  *cobra.Command
 		args []string
 	}{
+		{"cloudfront --list-certificates", func() *cobra.Command {
+			c := newCloudfrontCmd()
+			setFlag(t, c, "list-certificates", "true")
+
+			return c
+		}(), []string{}},
 		{"sns --list-topics", func() *cobra.Command {
 			c := newSnsCmd()
 			setFlag(t, c, "list-topics", "true")
@@ -156,6 +172,18 @@ func TestCommandRunE_Error(t *testing.T) {
 		{"sqs --list-queues", func() *cobra.Command {
 			c := newSqsCmd()
 			setFlag(t, c, "list-queues", "true")
+
+			return c
+		}(), []string{}},
+		{"sqs --get-queue-url", func() *cobra.Command {
+			c := newSqsCmd()
+			setFlag(t, c, "get-queue-url", "queue-name")
+
+			return c
+		}(), []string{}},
+		{"sqs --receive-message", func() *cobra.Command {
+			c := newSqsCmd()
+			setFlag(t, c, "receive-message", "https://sqs.us-east-1.amazonaws.com/123456789012/queue-name")
 
 			return c
 		}(), []string{}},

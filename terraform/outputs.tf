@@ -27,3 +27,33 @@ output "secret_2_arn" {
   description = "ARN of the second test secret"
   value       = aws_secretsmanager_secret.test_secret_2.arn
 }
+
+output "sample_queue_1_name" {
+  description = "Name of the first sample SQS queue"
+  value       = aws_sqs_queue.sample_queue_1.name
+}
+
+output "sample_queue_1_url" {
+  description = "URL of the first sample SQS queue"
+  value       = aws_sqs_queue.sample_queue_1.url
+}
+
+output "sample_queue_1_arn" {
+  description = "ARN of the first sample SQS queue"
+  value       = aws_sqs_queue.sample_queue_1.arn
+}
+
+output "sample_queue_2_name" {
+  description = "Name of the second sample SQS queue"
+  value       = aws_sqs_queue.sample_queue_2.name
+}
+
+output "sample_queue_2_url" {
+  description = "URL of the second sample SQS queue"
+  value       = aws_sqs_queue.sample_queue_2.url
+}
+
+output "sample_queue_2_arn" {
+  description = "ARN of the second sample SQS queue"
+  value       = aws_sqs_queue.sample_queue_2.arn
+}

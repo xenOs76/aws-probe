@@ -154,6 +154,32 @@ aws-probe sns --list-subscriptions <topic-arn>
 
 # List SQS queues
 aws-probe sqs --list-queues
+
+# Get SQS queue URL by queue name
+aws-probe sqs --get-queue-url <queue-name>
+
+# Receive SQS messages from queue URL
+aws-probe sqs --receive-message <queue-url>
+```
+
+### Local SQS Verification (Terraform)
+
+After bringing up the local stack (`./setup-local-env.sh`), use these commands to
+verify the Terraform sample queues and the new SQS CLI features.
+The Terraform apply seeds each sample queue with test messages:
+
+```shell
+# Confirm queues exist in LocalStack
+aws --endpoint-url=http://localhost:4566 --region us-east-1 sqs list-queues
+
+# Verify aws-probe queue listing
+aws-probe sqs --list-queues
+
+# Resolve queue URL from queue name
+aws-probe sqs --get-queue-url sample-queue-1
+
+# Receive from queue URL (use URL from list/get output)
+aws-probe sqs --receive-message <queue-url>
 ```
 
 ## License

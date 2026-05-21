@@ -13,6 +13,9 @@ provider "aws" {
   endpoints {
     s3             = "http://localhost:4566"
     secretsmanager = "http://localhost:4566"
+    sqs            = "http://localhost:4566"
+    cloudfront     = "http://localhost:4566"
+    acm            = "http://localhost:4566"
   }
 }
 
@@ -63,4 +66,66 @@ resource "aws_secretsmanager_secret" "test_secret_2" {
 resource "aws_secretsmanager_secret_version" "test_secret_2_value" {
   secret_id     = aws_secretsmanager_secret.test_secret_2.id
   secret_string = "api-key-12345-secret"
+}
+
+resource "aws_sqs_queue" "sample_queue_1" {
+  name = "sample-queue-1"
+}
+
+resource "aws_sqs_queue" "sample_queue_2" {
+  name = "sample-queue-2"
+}
+
+resource "terraform_data" "seed_sample_queue_messages" {
+  depends_on = [
+    aws_sqs_queue.sample_queue_1,
+    aws_sqs_queue.sample_queue_2,
+  ]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -eu
+
+      Q1_URL=$(AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws --endpoint-url=http://localhost:4566 sqs get-queue-url --queue-name sample-queue-1 --query 'QueueUrl' --output text)
+      Q2_URL=$(AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws --endpoint-url=http://localhost:4566 sqs get-queue-url --queue-name sample-queue-2 --query 'QueueUrl' --output text)
+
+      AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws --endpoint-url=http://localhost:4566 sqs send-message --queue-url "$Q1_URL" --message-body "sample-queue-1 message 1"
+      AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws --endpoint-url=http://localhost:4566 sqs send-message --queue-url "$Q1_URL" --message-body "sample-queue-1 message 2"
+      AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws --endpoint-url=http://localhost:4566 sqs send-message --queue-url "$Q2_URL" --message-body "sample-queue-2 message 1"
+      AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws --endpoint-url=http://localhost:4566 sqs send-message --queue-url "$Q2_URL" --message-body "sample-queue-2 message 2"
+    EOT
+  }
+}
+
+resource "aws_acm_certificate" "cert_1" {
+  domain_name       = "example.com"
+  validation_method = "DNS"
+}
+
+resource "aws_acm_certificate" "cert_2" {
+  domain_name       = "test.com"
+  validation_method = "DNS"
+}
+
+resource "terraform_data" "seed_cloudfront_distributions" {
+  depends_on = [
+    aws_s3_bucket.test_bucket,
+    aws_acm_certificate.cert_1,
+    aws_acm_certificate.cert_2
+  ]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -eu
+
+      # Dist 1: Default cert
+      AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws --endpoint-url=http://localhost:4566 cloudfront create-distribution --distribution-config '{"CallerReference":"dist_default_cert","Origins":{"Quantity":1,"Items":[{"Id":"myS3Origin","DomainName":"${aws_s3_bucket.test_bucket.bucket_regional_domain_name}"}]},"DefaultCacheBehavior":{"TargetOriginId":"myS3Origin","ViewerProtocolPolicy":"allow-all"},"ViewerCertificate":{"CloudFrontDefaultCertificate":true},"Comment":"","Enabled":true}' > /dev/null
+
+      # Dist 2: ACM Cert 1
+      AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws --endpoint-url=http://localhost:4566 cloudfront create-distribution --distribution-config '{"CallerReference":"dist_acm_1","Origins":{"Quantity":1,"Items":[{"Id":"myS3Origin","DomainName":"${aws_s3_bucket.test_bucket.bucket_regional_domain_name}"}]},"DefaultCacheBehavior":{"TargetOriginId":"myS3Origin","ViewerProtocolPolicy":"https-only"},"ViewerCertificate":{"ACMCertificateArn":"${aws_acm_certificate.cert_1.arn}","MinimumProtocolVersion":"TLSv1.2_2021","SSLSupportMethod":"sni-only"},"Aliases":{"Quantity":1,"Items":["example.com"]},"Comment":"","Enabled":true}' > /dev/null
+
+      # Dist 3: ACM Cert 2
+      AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws --endpoint-url=http://localhost:4566 cloudfront create-distribution --distribution-config '{"CallerReference":"dist_acm_2","Origins":{"Quantity":1,"Items":[{"Id":"myS3Origin","DomainName":"${aws_s3_bucket.test_bucket.bucket_regional_domain_name}"}]},"DefaultCacheBehavior":{"TargetOriginId":"myS3Origin","ViewerProtocolPolicy":"https-only"},"ViewerCertificate":{"ACMCertificateArn":"${aws_acm_certificate.cert_2.arn}","MinimumProtocolVersion":"TLSv1.1_2016","SSLSupportMethod":"sni-only"},"Aliases":{"Quantity":1,"Items":["test.com"]},"Comment":"","Enabled":true}' > /dev/null
+    EOT
+  }
 }

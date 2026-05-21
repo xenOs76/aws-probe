@@ -156,3 +156,79 @@ func TestListTopics(t *testing.T) {
 		})
 	}
 }
+
+func (*mockMskClient) GetBootstrapBrokers(
+	_ context.Context, params *kafka.GetBootstrapBrokersInput, _ ...func(*kafka.Options),
+) (*kafka.GetBootstrapBrokersOutput, error) {
+	if params.ClusterArn == nil || *params.ClusterArn == "arn:error" {
+		return nil, errors.New("api error")
+	}
+
+	if *params.ClusterArn == "arn:no-iam" {
+		return &kafka.GetBootstrapBrokersOutput{
+			BootstrapBrokerString: aws.String("b1,b2"),
+		}, nil
+	}
+
+	return &kafka.GetBootstrapBrokersOutput{
+		BootstrapBrokerStringSaslIam: aws.String("iam1,iam2"),
+		BootstrapBrokerStringTls:     aws.String("tls1,tls2"),
+		BootstrapBrokerString:        aws.String("plain1,plain2"),
+	}, nil
+}
+
+func TestResolveBrokers(t *testing.T) {
+	ctx := context.Background()
+	api := &mockMskClient{}
+
+	t.Run("Explicit Brokers", func(t *testing.T) {
+		b, err := ResolveBrokers(ctx, "b1,b2", "", "", false, api)
+		require.NoError(t, err)
+		require.Equal(t, []string{"b1", "b2"}, b)
+	})
+
+	t.Run("Missing ARN and Brokers", func(t *testing.T) {
+		_, err := ResolveBrokers(ctx, "", "", "", false, api)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "required")
+	})
+
+	t.Run("API Error", func(t *testing.T) {
+		_, err := ResolveBrokers(ctx, "", "arn:error", "", false, api)
+		require.Error(t, err)
+	})
+
+	t.Run("IAM", func(t *testing.T) {
+		b, err := ResolveBrokers(ctx, "", "arn:cluster1", "iam", false, api)
+		require.NoError(t, err)
+		require.Equal(t, []string{"iam1", "iam2"}, b)
+	})
+
+	t.Run("IAM not supported", func(t *testing.T) {
+		_, err := ResolveBrokers(ctx, "", "arn:no-iam", "iam", false, api)
+		require.Error(t, err)
+	})
+
+	t.Run("TLS", func(t *testing.T) {
+		b, err := ResolveBrokers(ctx, "", "arn:cluster1", "none", true, api)
+		require.NoError(t, err)
+		require.Equal(t, []string{"tls1", "tls2"}, b)
+	})
+
+	t.Run("TLS not supported", func(t *testing.T) {
+		_, err := ResolveBrokers(ctx, "", "arn:no-iam", "none", true, api)
+		require.Error(t, err)
+	})
+
+	t.Run("Plaintext", func(t *testing.T) {
+		b, err := ResolveBrokers(ctx, "", "arn:cluster1", "none", false, api)
+		require.NoError(t, err)
+		require.Equal(t, []string{"plain1", "plain2"}, b)
+	})
+
+	t.Run("Plaintext not supported", func(t *testing.T) {
+		emptyOut := &kafka.GetBootstrapBrokersOutput{}
+		_, err := selectBrokerString(emptyOut, "none", false)
+		require.Error(t, err)
+	})
+}
