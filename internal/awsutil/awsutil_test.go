@@ -109,6 +109,34 @@ func TestDetectAuthMethod(t *testing.T) {
 		os.Unsetenv("AWS_ACCESS_KEY_ID")
 		os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 	})
+	t.Run("ECS", func(t *testing.T) {
+		os.Setenv("ECS_CONTAINER_METADATA_URI", "http://169.254.170.2")
+
+		method := DetectAuthMethod()
+		assert.Equal(t, AuthMethodECS, method.Type)
+		os.Unsetenv("ECS_CONTAINER_METADATA_URI")
+	})
+
+	t.Run("AWS Profile", func(t *testing.T) {
+		os.Setenv("AWS_PROFILE", "myprofile")
+
+		method := DetectAuthMethod()
+		assert.Equal(t, AuthMethodAWSProfile, method.Type)
+		os.Unsetenv("AWS_PROFILE")
+	})
+
+	t.Run("AWS SSO Environment", func(t *testing.T) {
+		os.Setenv("AWS_SSO_START_URL", "url")
+
+		method := DetectAuthMethod()
+		assert.Equal(t, AuthMethodSSO, method.Type)
+		os.Unsetenv("AWS_SSO_START_URL")
+	})
+
+	t.Run("EC2 Role", func(t *testing.T) {
+		method := DetectAuthMethod()
+		assert.Equal(t, AuthMethodEC2Role, method.Type)
+	})
 }
 
 func TestLoadAWSConfig(t *testing.T) {
@@ -116,4 +144,37 @@ func TestLoadAWSConfig(t *testing.T) {
 	cfg, err := LoadAWSConfig(ctx)
 	require.NoError(t, err)
 	assert.NotEmpty(t, cfg.Region)
+}
+
+func TestEnsureCredentials(t *testing.T) {
+	err := EnsureCredentials()
+	require.NoError(t, err)
+}
+
+func TestPrepareAWSConfig(t *testing.T) {
+	ctx := context.Background()
+	cfg, err := PrepareAWSConfig(ctx)
+	require.NoError(t, err)
+	assert.NotEmpty(t, cfg.Region)
+}
+
+func TestIsSSOProfile(t *testing.T) {
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+
+	err := os.Mkdir(tempHome+"/.aws", 0o755)
+	require.NoError(t, err)
+
+	configContent := `[default]
+sso_start_url = https://example.awsapps.com/start
+
+[profile dev]
+region = us-east-1`
+
+	err = os.WriteFile(tempHome+"/.aws/config", []byte(configContent), 0o644)
+	require.NoError(t, err)
+
+	assert.True(t, isSSOProfile("default"))
+	assert.False(t, isSSOProfile("dev"))
+	assert.False(t, isSSOProfile("unknown"))
 }

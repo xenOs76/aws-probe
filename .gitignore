@@ -18,3 +18,4 @@ devenv.local.yaml
 
 terraform/.terraform*
 terraform/terraform.*
+terraform/.cloudfront_dist_ids
