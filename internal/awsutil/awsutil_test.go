@@ -58,7 +58,7 @@ func TestDerefInt64(t *testing.T) {
 	assert.Equal(t, int64(0), DerefInt64(nil))
 }
 
-//nolint:function-length // test functions with many subtests can be long
+//nolint:revive // test functions with many subtests can be long
 func TestDetectAuthMethod(t *testing.T) {
 	// Backup env vars
 	envVars := []string{
