@@ -94,7 +94,7 @@ func printTable(out io.Writer, theme string, data TableData) error {
 		})
 	}
 
-	fmt.Fprintln(out, t.Render())
+	_, err := fmt.Fprintln(out, t.Render())
 
-	return nil
+	return err
 }

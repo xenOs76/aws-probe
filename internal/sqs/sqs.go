@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -91,8 +92,13 @@ func GetQueueURL(ctx context.Context, api QueueURLGetter, queueName string, w io
 		return fmt.Errorf("getting SQS queue URL: %w", err)
 	}
 
-	fmt.Fprint(w, "QUEUE URL\n")
-	fmt.Fprintf(w, "%s\n", aws.ToString(output.QueueUrl))
+	if _, err := fmt.Fprint(w, "QUEUE URL\n"); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprintf(w, "%s\n", aws.ToString(output.QueueUrl)); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -119,7 +125,9 @@ func ReceiveMessage(ctx context.Context, api MessageReceiver, queueURL string, w
 	fmt.Fprint(tw, "MESSAGE ID\tBODY\n")
 
 	for _, message := range output.Messages {
-		fmt.Fprintf(tw, "%s\t%s\n", aws.ToString(message.MessageId), aws.ToString(message.Body))
+		safeBody := strings.ReplaceAll(aws.ToString(message.Body), "\n", "\\n")
+		safeBody = strings.ReplaceAll(safeBody, "\t", "\\t")
+		fmt.Fprintf(tw, "%s\t%s\n", aws.ToString(message.MessageId), safeBody)
 	}
 
 	return tw.Flush()

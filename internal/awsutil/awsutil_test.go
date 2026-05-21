@@ -165,7 +165,7 @@ func TestIsSSOProfile(t *testing.T) {
 	err := os.Mkdir(tempHome+"/.aws", 0o755)
 	require.NoError(t, err)
 
-	configContent := `[profile default]
+	configContent := `[default]
 sso_start_url = https://example.awsapps.com/start
 
 [profile dev]
