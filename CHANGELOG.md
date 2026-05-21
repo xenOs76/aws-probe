@@ -1,4 +1,8 @@
-## 0.2.0 (2026-05-21)
+## 0.1.2 (2026-05-21)
+
+## CI
+
+- update release Github action with missing Nix dependencies
 
 ## 0.1.1 (2026-05-21)
 
