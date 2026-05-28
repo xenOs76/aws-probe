@@ -2,6 +2,8 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/spf13/cobra"
 	"github.com/xenos76/aws-probe/internal/sns"
 )
@@ -26,7 +28,7 @@ func newSnsCmd() *cobra.Command {
   aws-probe sns --list-subscriptions <topic-arn>`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if !listTopicsFlag && listSubscriptionsFlag == "" {
-				return cmd.Help()
+				return errors.New("an action flag is required: use one of --list-topics, --list-subscriptions")
 			}
 
 			cfg, err := PrepareAWSConfig(cmd.Context())

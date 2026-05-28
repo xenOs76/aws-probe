@@ -20,6 +20,11 @@ before:
     - go mod download
     - go mod tidy
     - go test ./...
+    - rm -rf completions
+    - mkdir completions
+    - sh -c 'go run . completion bash > completions/aws-probe.bash'
+    - sh -c 'go run . completion zsh > completions/aws-probe.zsh'
+    - sh -c 'go run . completion fish > completions/aws-probe.fish'
 
 builds:
   - env:
@@ -42,6 +47,7 @@ archives:
     files:
       - README.md
       - LICENSE
+      - completions/*
 
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
@@ -56,6 +62,13 @@ nfpms:
     formats:
       - deb
       - rpm
+    contents:
+      - src: completions/aws-probe.bash
+        dst: /etc/bash_completion.d/aws-probe
+      - src: completions/aws-probe.fish
+        dst: /usr/share/fish/vendor_completions.d/aws-probe.fish
+      - src: completions/aws-probe.zsh
+        dst: /usr/share/zsh/site-functions/_aws-probe
     release: "1"
 
 homebrew_casks:
@@ -66,6 +79,10 @@ homebrew_casks:
     description: aws-probe, a tool for checking cloud wiring
     license: MIT
     skip_upload: false
+    completions:
+      bash: "completions/{{ .ProjectName }}.bash"
+      zsh: "completions/{{ .ProjectName }}.zsh"
+      fish: "completions/{{ .ProjectName }}.fish"
 
 nix:
   - name: aws-probe
@@ -76,8 +93,11 @@ nix:
     description: aws-probe
     path: pkgs/aws-probe/default.nix
     license: mit
-    # extra_install: |-
-    #   # Add completions or manpages here if available in the future
+    extra_install: |-
+      installShellCompletion --cmd aws-probe \
+        --bash <($out/bin/aws-probe completion bash) \
+        --fish <($out/bin/aws-probe completion fish) \
+        --zsh <($out/bin/aws-probe completion zsh)
 
 changelog:
   sort: asc

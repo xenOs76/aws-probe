@@ -2,6 +2,8 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/spf13/cobra"
 	"github.com/xenos76/aws-probe/internal/secrets"
 )
@@ -26,7 +28,7 @@ func newSecretsCmd() *cobra.Command {
   aws-probe secrets --get-secret-value my-secret-id`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if !listSecrets && getSecret == "" {
-				return cmd.Help()
+				return errors.New("an action flag is required: use one of --list-secrets, --get-secret-value")
 			}
 
 			cfg, err := PrepareAWSConfig(cmd.Context())

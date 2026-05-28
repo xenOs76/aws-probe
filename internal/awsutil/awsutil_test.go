@@ -10,6 +10,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var authMethodEnvVars = []string{
+	"AWS_WEB_IDENTITY_TOKEN_FILE",
+	"AWS_ROLE_ARN",
+	"AWS_SERVICE_NAME",
+	"AWS_PROFILE",
+	"AWS_ACCESS_KEY_ID",
+	"AWS_SECRET_ACCESS_KEY",
+	"ECS_CONTAINER_METADATA_URI",
+	"AWS_SSO_START_URL",
+	"AWS_SSO_TOKEN",
+	"AWS_SSO_ACCOUNT_ID",
+	"AWS_SSO_ROLE_NAME",
+}
+
 func TestIsCredentialError(t *testing.T) {
 	tests := []struct {
 		name string
@@ -58,86 +72,70 @@ func TestDerefInt64(t *testing.T) {
 	assert.Equal(t, int64(0), DerefInt64(nil))
 }
 
-//nolint:revive // test functions with many subtests can be long
 func TestDetectAuthMethod(t *testing.T) {
-	// Backup env vars
-	envVars := []string{
-		"AWS_WEB_IDENTITY_TOKEN_FILE",
-		"AWS_ROLE_ARN",
-		"AWS_SERVICE_NAME",
-		"AWS_PROFILE",
-		"AWS_ACCESS_KEY_ID",
-		"AWS_SECRET_ACCESS_KEY",
-		"ECS_CONTAINER_METADATA_URI",
-		"AWS_SSO_START_URL",
-		"AWS_SSO_TOKEN",
-		"AWS_SSO_ACCOUNT_ID",
-		"AWS_SSO_ROLE_NAME",
+	tests := []struct {
+		name   string
+		setup  map[string]string
+		expect AuthMethodType
+	}{
+		{
+			name: "EKS IRSA",
+			setup: map[string]string{
+				"AWS_WEB_IDENTITY_TOKEN_FILE": "/tmp/token",
+				"AWS_ROLE_ARN":                "arn:role",
+			},
+			expect: AuthMethodEKSIRSA,
+		},
+		{
+			name: "Static Creds",
+			setup: map[string]string{
+				"AWS_ACCESS_KEY_ID":     "key",
+				"AWS_SECRET_ACCESS_KEY": "secret",
+			},
+			expect: AuthMethodStaticCreds,
+		},
+		{
+			name: "ECS",
+			setup: map[string]string{
+				"ECS_CONTAINER_METADATA_URI": "http://169.254.170.2",
+			},
+			expect: AuthMethodECS,
+		},
+		{
+			name: "AWS Profile",
+			setup: map[string]string{
+				"AWS_PROFILE": "myprofile",
+			},
+			expect: AuthMethodAWSProfile,
+		},
+		{
+			name: "AWS SSO Environment",
+			setup: map[string]string{
+				"AWS_SSO_START_URL": "url",
+			},
+			expect: AuthMethodSSO,
+		},
+		{
+			name:   "EC2 Role",
+			setup:  map[string]string{},
+			expect: AuthMethodEC2Role,
+		},
 	}
-	backup := make(map[string]string)
 
-	for _, v := range envVars {
-		backup[v] = os.Getenv(v)
-		os.Unsetenv(v)
-	}
-
-	defer func() {
-		for k, v := range backup {
-			if v != "" {
-				os.Setenv(k, v)
-			} else {
-				os.Unsetenv(k)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, envVar := range authMethodEnvVars {
+				t.Setenv(envVar, "")
 			}
-		}
-	}()
 
-	t.Run("EKS IRSA", func(t *testing.T) {
-		os.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", "/tmp/token")
-		os.Setenv("AWS_ROLE_ARN", "arn:role")
+			for envVar, value := range tt.setup {
+				t.Setenv(envVar, value)
+			}
 
-		method := DetectAuthMethod()
-		assert.Equal(t, AuthMethodEKSIRSA, method.Type)
-		os.Unsetenv("AWS_WEB_IDENTITY_TOKEN_FILE")
-		os.Unsetenv("AWS_ROLE_ARN")
-	})
-
-	t.Run("Static Creds", func(t *testing.T) {
-		os.Setenv("AWS_ACCESS_KEY_ID", "key")
-		os.Setenv("AWS_SECRET_ACCESS_KEY", "secret")
-
-		method := DetectAuthMethod()
-		assert.Equal(t, AuthMethodStaticCreds, method.Type)
-		os.Unsetenv("AWS_ACCESS_KEY_ID")
-		os.Unsetenv("AWS_SECRET_ACCESS_KEY")
-	})
-	t.Run("ECS", func(t *testing.T) {
-		os.Setenv("ECS_CONTAINER_METADATA_URI", "http://169.254.170.2")
-
-		method := DetectAuthMethod()
-		assert.Equal(t, AuthMethodECS, method.Type)
-		os.Unsetenv("ECS_CONTAINER_METADATA_URI")
-	})
-
-	t.Run("AWS Profile", func(t *testing.T) {
-		os.Setenv("AWS_PROFILE", "myprofile")
-
-		method := DetectAuthMethod()
-		assert.Equal(t, AuthMethodAWSProfile, method.Type)
-		os.Unsetenv("AWS_PROFILE")
-	})
-
-	t.Run("AWS SSO Environment", func(t *testing.T) {
-		os.Setenv("AWS_SSO_START_URL", "url")
-
-		method := DetectAuthMethod()
-		assert.Equal(t, AuthMethodSSO, method.Type)
-		os.Unsetenv("AWS_SSO_START_URL")
-	})
-
-	t.Run("EC2 Role", func(t *testing.T) {
-		method := DetectAuthMethod()
-		assert.Equal(t, AuthMethodEC2Role, method.Type)
-	})
+			method := DetectAuthMethod()
+			assert.Equal(t, tt.expect, method.Type)
+		})
+	}
 }
 
 func TestLoadAWSConfig(t *testing.T) {

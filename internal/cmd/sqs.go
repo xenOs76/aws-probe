@@ -1,13 +1,15 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/spf13/cobra"
 	"github.com/xenos76/aws-probe/internal/sqs"
 )
 
 // newSqsCmd returns the cobra command for SQS probes. Exactly one of
 // --list-queues, --get-queue-url <name>, or --receive-message <queue-url> must
-// be set; without any, RunE prints help. Operations are mutually exclusive.
+// be set; without any, RunE returns an explicit error. Operations are mutually exclusive.
 func newSqsCmd() *cobra.Command {
 	var (
 		listQueuesFlag     bool
@@ -29,7 +31,9 @@ func newSqsCmd() *cobra.Command {
   aws-probe sqs --receive-message https://sqs.us-east-1.amazonaws.com/123456789012/my-queue`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if !listQueuesFlag && getQueueURLFlag == "" && receiveMessageFlag == "" {
-				return cmd.Help()
+				return errors.New(
+					"an action flag is required: use one of --list-queues, --get-queue-url, --receive-message",
+				)
 			}
 
 			cfg, err := PrepareAWSConfig(cmd.Context())
