@@ -43,7 +43,7 @@ func newS3Cmd() *cobra.Command {
 				return runGetObjectMetadata(cmd, getMetadataFlag, key)
 			}
 
-			return cmd.Help()
+			return errors.New("an action flag is required: use one of --list-buckets, --list-bucket, --get-metadata")
 		},
 	}
 

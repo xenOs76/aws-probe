@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
@@ -72,7 +73,33 @@ func TestNewRootCmd(t *testing.T) {
 	require.NotNil(t, cmd)
 	assert.Equal(t, "aws-probe", cmd.Use)
 	assert.NotNil(t, cmd.Commands())
-	assert.Len(t, cmd.Commands(), 7)
+	assert.Len(t, cmd.Commands(), 8)
+	assert.NotNil(t, cmd.Commands()[7])
+}
+
+func TestCompletionCommand(t *testing.T) {
+	cmd := newRootCmd()
+	completionCmd, _, err := cmd.Find([]string{"completion"})
+	require.NoError(t, err)
+	require.NotNil(t, completionCmd)
+	assert.Equal(t, "completion", completionCmd.Name())
+
+	for _, shell := range []string{"bash", "zsh", "fish", "powershell"} {
+		shellCmd, _, findErr := cmd.Find([]string{"completion", shell})
+		require.NoError(t, findErr)
+		require.NotNil(t, shellCmd)
+		assert.Equal(t, shell, shellCmd.Name())
+
+		var out bytes.Buffer
+		cmd.SetOut(&out)
+		cmd.SetErr(&out)
+		cmd.SetArgs([]string{"completion", shell})
+
+		execErr := cmd.Execute()
+		require.NoError(t, execErr)
+		assert.NotEmpty(t, out.String())
+		assert.Contains(t, out.String(), "aws-probe")
+	}
 }
 
 func TestNewSnsCmd(t *testing.T) {
@@ -90,6 +117,8 @@ func TestNewCloudfrontCmd(t *testing.T) {
 	require.NotNil(t, cmd)
 	assert.Equal(t, "cloudfront", cmd.Use)
 	assert.NotNil(t, cmd.Flags().Lookup("list-certificates"))
+	assert.NotNil(t, cmd.Flags().Lookup("output"))
+	assert.NotNil(t, cmd.Flags().Lookup("theme"))
 }
 
 //nolint:revive // maximum number of lines per function exceeded is acceptable for test case exhaustive coverage
@@ -138,7 +167,8 @@ func TestCommandRunE_Error(t *testing.T) {
 		}(), []string{}},
 		{"msk --list-topics", func() *cobra.Command {
 			c := newMskCmd()
-			setFlag(t, c, "list-topics", "arn")
+			setFlag(t, c, "list-topics", "true")
+			setFlag(t, c, "cluster-arn", "arn")
 
 			return c
 		}(), []string{}},
@@ -157,6 +187,14 @@ func TestCommandRunE_Error(t *testing.T) {
 
 			return c
 		}(), []string{}},
+		{"msk positional args are rejected", func() *cobra.Command {
+			c := newMskCmd()
+			setFlag(t, c, "produce", "true")
+			setFlag(t, c, "topic", "t")
+			setFlag(t, c, "message", "m")
+
+			return c
+		}(), []string{"extra"}},
 		{"secrets --list-secrets", func() *cobra.Command {
 			c := newSecretsCmd()
 			setFlag(t, c, "list-secrets", "true")
@@ -212,6 +250,189 @@ func TestCommandRunE_Error(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.cmd.RunE(tt.cmd, tt.args)
 			require.Error(t, err)
+		})
+	}
+}
+
+type validateMSKCase struct {
+	name    string
+	args    []string
+	opts    mskOptions
+	wantErr string
+}
+
+func mskValidationCases() []validateMSKCase {
+	return append(mskValidationCoreCases(), mskValidationProduceConsumeCases()...)
+}
+
+func mskValidationCoreCases() []validateMSKCase {
+	return []validateMSKCase{
+		{
+			name: "flags without action are rejected (acks)",
+			opts: mskOptions{
+				acks: 0,
+			},
+			wantErr: "an action flag is required",
+		},
+		{
+			name: "flags without action are rejected (auth)",
+			opts: mskOptions{
+				auth: "none",
+				acks: -1,
+			},
+			wantErr: "an action flag is required",
+		},
+		{
+			name: "flags without action are rejected (key)",
+			opts: mskOptions{
+				auth: "iam",
+				acks: -1,
+				key:  "test",
+			},
+			wantErr: "an action flag is required",
+		},
+		{
+			name: "valid produce",
+			opts: mskOptions{
+				produce: true,
+				topic:   "topic",
+				message: "message",
+				auth:    "iam",
+				acks:    -1,
+			},
+		},
+		{
+			name: "list-topics requires cluster arn",
+			opts: mskOptions{
+				listTopics: true,
+				auth:       "iam",
+				acks:       -1,
+			},
+			wantErr: "list-topics mode requires --cluster-arn",
+		},
+		{
+			name: "invalid auth",
+			opts: mskOptions{
+				listClusters: true,
+				auth:         "scram",
+				acks:         -1,
+			},
+			wantErr: "invalid --auth value",
+		},
+		{
+			name: "invalid acks",
+			opts: mskOptions{
+				listClusters: true,
+				auth:         "iam",
+				acks:         2,
+			},
+			wantErr: "invalid --acks value",
+		},
+	}
+}
+
+func mskValidationProduceConsumeCases() []validateMSKCase {
+	return []validateMSKCase{
+		{
+			name: "produce requires topic",
+			opts: mskOptions{
+				produce: true,
+				message: "message",
+				auth:    "iam",
+				acks:    -1,
+			},
+			wantErr: "produce mode requires --topic",
+		},
+		{
+			name: "produce requires message",
+			opts: mskOptions{
+				produce: true,
+				topic:   "topic",
+				auth:    "iam",
+				acks:    -1,
+			},
+			wantErr: "produce mode requires --message",
+		},
+		{
+			name: "consume requires topic",
+			opts: mskOptions{
+				consume: true,
+				auth:    "none",
+				acks:    1,
+			},
+			wantErr: "consume mode requires --topic",
+		},
+		{
+			name: "positional args rejected",
+			args: []string{"topic"},
+			opts: mskOptions{
+				consume: true,
+				topic:   "topic",
+				auth:    "none",
+				acks:    1,
+			},
+			wantErr: "positional arguments are not supported",
+		},
+	}
+}
+
+func TestValidateMSKOptions(t *testing.T) {
+	tests := mskValidationCases()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateMSKOptions(tt.args, tt.opts)
+			if tt.wantErr == "" {
+				require.NoError(t, err)
+
+				return
+			}
+
+			require.Error(t, err)
+
+			assert.Contains(t, err.Error(), tt.wantErr)
+		})
+	}
+}
+
+func TestCommandActionRequiredErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		cmd     *cobra.Command
+		wantErr string
+	}{
+		{
+			name:    "s3 requires action",
+			cmd:     newS3Cmd(),
+			wantErr: "an action flag is required",
+		},
+		{
+			name:    "sqs requires action",
+			cmd:     newSqsCmd(),
+			wantErr: "an action flag is required",
+		},
+		{
+			name:    "sns requires action",
+			cmd:     newSnsCmd(),
+			wantErr: "an action flag is required",
+		},
+		{
+			name:    "secrets requires action",
+			cmd:     newSecretsCmd(),
+			wantErr: "an action flag is required",
+		},
+		{
+			name:    "cloudfront requires action",
+			cmd:     newCloudfrontCmd(),
+			wantErr: "an action flag is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cmd.RunE(tt.cmd, nil)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErr)
 		})
 	}
 }

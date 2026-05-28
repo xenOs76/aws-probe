@@ -92,6 +92,29 @@ might be needed to enable the execution of the binary.
 
 ## Usage
 
+### Shell Completion
+
+Generate a completion script for your shell:
+
+```shell
+aws-probe completion bash
+aws-probe completion zsh
+aws-probe completion fish
+aws-probe completion powershell
+```
+
+Quick setup examples:
+
+```shell
+# Bash (current session)
+source <(aws-probe completion bash)
+
+# Zsh (persisted)
+mkdir -p "${fpath[1]}"
+aws-probe completion zsh > "${fpath[1]}/_aws-probe"
+autoload -Uz compinit && compinit
+```
+
 ### Check Identity
 
 ```shell
@@ -141,6 +164,15 @@ aws-probe secrets --list-secrets
 
 # Get secret value
 aws-probe secrets --get-secret-value my-secret-id
+```
+
+### CloudFront
+
+Manage CloudFront distributions and associated resources.
+
+```shell
+# List certificates of all CloudFront distributions
+aws-probe cloudfront --list-certificates
 ```
 
 ### SNS & SQS

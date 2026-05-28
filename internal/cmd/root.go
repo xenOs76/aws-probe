@@ -23,13 +23,6 @@ var DefaultAWSRegion = func() string {
 // Version is the current version of the aws-probe tool.
 var Version = "dev"
 
-var (
-	// OutputFormat specifies the output format for all commands.
-	OutputFormat string
-	// Theme specifies the color theme for table output.
-	Theme string
-)
-
 // newRootCmd creates the top-level aws-probe command.
 func newRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
@@ -51,10 +44,7 @@ resources, and configuration.`,
 	rootCmd.AddCommand(newMskCmd())
 	rootCmd.AddCommand(newSnsCmd())
 	rootCmd.AddCommand(newCloudfrontCmd())
-
-	rootCmd.PersistentFlags().StringVarP(&OutputFormat, "output", "o", "table", "Output format (table, csv, json)")
-	rootCmd.PersistentFlags().StringVarP(&Theme, "theme", "t", "catppuccin-frappe",
-		"Output theme (catppuccin-frappe, dracula, nord, none)")
+	rootCmd.AddCommand(newCompletionCmd(rootCmd))
 
 	return rootCmd
 }
