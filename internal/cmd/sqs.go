@@ -9,7 +9,7 @@ import (
 
 // newSqsCmd returns the cobra command for SQS probes. Exactly one of
 // --list-queues, --get-queue-url <name>, or --receive-message <queue-url> must
-// be set; without any, RunE prints help. Operations are mutually exclusive.
+// be set; without any, RunE returns an explicit error. Operations are mutually exclusive.
 func newSqsCmd() *cobra.Command {
 	var (
 		listQueuesFlag     bool

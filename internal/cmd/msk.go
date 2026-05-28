@@ -177,11 +177,11 @@ func validateMSKOptions(args []string, opts mskOptions) error {
 
 func validateMSKActionSelection(opts mskOptions) error {
 	actionSelected := opts.listClusters || opts.listTopics || opts.produce || opts.consume
-	if actionSelected || !hasMSKParameterFlags(opts) {
-		return nil
+	if !actionSelected {
+		return errors.New("an action flag is required: use one of --list-clusters, --list-topics, --produce, --consume")
 	}
 
-	return errors.New("an action flag is required: use one of --list-clusters, --list-topics, --produce, --consume")
+	return nil
 }
 
 func hasMSKParameterFlags(opts mskOptions) bool {
