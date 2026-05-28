@@ -1,3 +1,18 @@
+## 0.1.3 (2026-05-28)
+
+### Feat
+
+    Added shell completion support for bash, zsh, fish, and powershell shells
+    CloudFront command now supports --output and --theme flags for customized output
+
+### Doc
+
+    Updated README with shell completion setup examples and CloudFront usage documentation
+
+### Tests
+
+    Added comprehensive tests for completion commands and command validation logic
+
 ## 0.1.2 (2026-05-21)
 
 ## CI
