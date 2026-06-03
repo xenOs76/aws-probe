@@ -32,6 +32,10 @@ func registerPrompts(server *mcp.Server) {
 		},
 	}, func(_ context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		bucket := promptArg(req, "bucket")
+		if bucket == "" {
+			return nil, errS3BucketRequired
+		}
+
 		prefix := promptArg(req, "prefix")
 
 		return &mcp.GetPromptResult{

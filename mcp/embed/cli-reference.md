@@ -21,4 +21,4 @@
 
 ## MCP tools (prefix `aws_probe_`)
 
-See the MCP tool list registered by `aws-probe mcp` or kubectl-netdrill with `--external-tools`.
+See the MCP tool list registered by `aws-probe mcp` (or your MCP client's tool listing).

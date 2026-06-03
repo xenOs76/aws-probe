@@ -8,7 +8,9 @@ import (
 )
 
 func loadAWS(ctx context.Context, deps *Deps) (aws.Config, error) {
-	cfg, err := deps.LoadConfig(ctx)
+	d := deps.withDefaults()
+
+	cfg, err := d.LoadConfig(ctx)
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("loading AWS config: %w", err)
 	}

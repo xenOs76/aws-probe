@@ -46,7 +46,7 @@ func secretsListHandler(deps *Deps) func(
 }
 
 func listSecretsForMCP(ctx context.Context, client internalsecrets.Lister) ([]secretEntry, error) {
-	var secrets []secretEntry
+	secrets := make([]secretEntry, 0)
 
 	input := &secretsmanager.ListSecretsInput{}
 	for {

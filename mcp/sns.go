@@ -27,7 +27,7 @@ func registerSNSTools(server *mcp.Server, deps *Deps) {
 		client := internalsns.NewClient(cfg)
 		paginator := sns.NewListTopicsPaginator(client, &sns.ListTopicsInput{})
 
-		var arns []string
+		arns := make([]string, 0)
 
 		for paginator.HasMorePages() {
 			page, err := paginator.NextPage(ctx)

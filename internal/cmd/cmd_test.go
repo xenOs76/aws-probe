@@ -72,9 +72,11 @@ func TestNewRootCmd(t *testing.T) {
 
 	require.NotNil(t, cmd)
 	assert.Equal(t, "aws-probe", cmd.Use)
-	assert.NotNil(t, cmd.Commands())
-	assert.Len(t, cmd.Commands(), 9)
-	assert.NotNil(t, cmd.Commands()[7])
+
+	mcpCmd, _, err := cmd.Find([]string{"mcp"})
+	require.NoError(t, err)
+	require.NotNil(t, mcpCmd)
+	assert.Equal(t, "mcp", mcpCmd.Name())
 }
 
 func TestCompletionCommand(t *testing.T) {

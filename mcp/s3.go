@@ -228,7 +228,7 @@ func collectS3Objects(
 
 	paginator := s3.NewListObjectsV2Paginator(api, input)
 
-	var objects []objectEntry
+	objects := make([]objectEntry, 0)
 
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(ctx)

@@ -83,7 +83,7 @@ func sqsListQueuesHandler(deps *Deps) func(
 }
 
 func listSQSQueueURLs(ctx context.Context, client internalsqs.Lister) ([]string, error) {
-	var urls []string
+	urls := make([]string, 0)
 
 	input := &sqs.ListQueuesInput{}
 	for {
@@ -186,6 +186,7 @@ func receiveSQSMessages(
 	out, err := client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
 		QueueUrl:            aws.String(queueURL),
 		MaxNumberOfMessages: maxMessages,
+		WaitTimeSeconds:     2,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("receiving messages: %w", err)

@@ -111,7 +111,7 @@ func mskListClustersHandler(deps *Deps) func(
 }
 
 func listMSKClustersForMCP(ctx context.Context, client internalmsk.ClustersLister) ([]mskClusterEntry, error) {
-	var clusters []mskClusterEntry
+	clusters := make([]mskClusterEntry, 0)
 
 	input := &kafka.ListClustersV2Input{}
 	for {
@@ -167,7 +167,7 @@ func listMSKTopicsForMCP(
 	client internalmsk.TopicsLister,
 	clusterARN string,
 ) ([]mskTopicEntry, error) {
-	var topics []mskTopicEntry
+	topics := make([]mskTopicEntry, 0)
 
 	input := &kafka.ListTopicsInput{ClusterArn: &clusterARN}
 	for {
