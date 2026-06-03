@@ -73,7 +73,7 @@ func TestNewRootCmd(t *testing.T) {
 	require.NotNil(t, cmd)
 	assert.Equal(t, "aws-probe", cmd.Use)
 	assert.NotNil(t, cmd.Commands())
-	assert.Len(t, cmd.Commands(), 8)
+	assert.Len(t, cmd.Commands(), 9)
 	assert.NotNil(t, cmd.Commands()[7])
 }
 

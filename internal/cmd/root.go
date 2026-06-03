@@ -44,6 +44,7 @@ resources, and configuration.`,
 	rootCmd.AddCommand(newMskCmd())
 	rootCmd.AddCommand(newSnsCmd())
 	rootCmd.AddCommand(newCloudfrontCmd())
+	rootCmd.AddCommand(newMcpCmd())
 	rootCmd.AddCommand(newCompletionCmd(rootCmd))
 
 	return rootCmd
