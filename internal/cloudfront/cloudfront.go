@@ -50,10 +50,10 @@ func NewACMClient(cfg aws.Config) *acm.Client {
 	return acm.NewFromConfig(cfg)
 }
 
-// ListCertificates gathers certificate data for all CloudFront distributions.
-func ListCertificates(ctx context.Context, cfClient ClientAPI, acmClient ACMClientAPI,
-	out io.Writer, format, theme string,
-) error {
+// CollectCertificates gathers certificate data for all CloudFront distributions.
+func CollectCertificates(ctx context.Context, cfClient ClientAPI, acmClient ACMClientAPI) (
+	[]CertificateReport, error,
+) {
 	var (
 		reports []CertificateReport
 		marker  *string
@@ -64,7 +64,7 @@ func ListCertificates(ctx context.Context, cfClient ClientAPI, acmClient ACMClie
 			Marker: marker,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if resp.DistributionList != nil && len(resp.DistributionList.Items) > 0 {
@@ -80,6 +80,18 @@ func ListCertificates(ctx context.Context, cfClient ClientAPI, acmClient ACMClie
 		}
 
 		marker = resp.DistributionList.NextMarker
+	}
+
+	return reports, nil
+}
+
+// ListCertificates gathers certificate data for all CloudFront distributions.
+func ListCertificates(ctx context.Context, cfClient ClientAPI, acmClient ACMClientAPI,
+	out io.Writer, format, theme string,
+) error {
+	reports, err := CollectCertificates(ctx, cfClient, acmClient)
+	if err != nil {
+		return err
 	}
 
 	headers := []string{

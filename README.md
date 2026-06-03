@@ -196,9 +196,9 @@ aws-probe sqs --receive-message <queue-url>
 
 ### Local SQS Verification (Terraform)
 
-After bringing up the local stack (`./setup-local-env.sh`), use these commands to
-verify the Terraform sample queues and the new SQS CLI features.
-The Terraform apply seeds each sample queue with test messages:
+After bringing up the local stack (`./setup-local-env.sh`), use these commands
+to verify the Terraform sample queues and the new SQS CLI features. The
+Terraform apply seeds each sample queue with test messages:
 
 ```shell
 # Confirm queues exist in LocalStack
@@ -213,6 +213,57 @@ aws-probe sqs --get-queue-url sample-queue-1
 # Receive from queue URL (use URL from list/get output)
 aws-probe sqs --receive-message <queue-url>
 ```
+
+### MCP server
+
+Expose aws-probe to AI clients over stdin/stdout
+([Model Context Protocol](https://modelcontextprotocol.io/)):
+
+```shell
+aws-probe mcp
+```
+
+#### Cursor configuration example
+
+```json
+{
+  "mcpServers": {
+    "aws-probe": {
+      "command": "aws-probe",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+#### MCP tools (Phase 1)
+
+| Tool                                     | Purpose                           |
+| ---------------------------------------- | --------------------------------- |
+| `aws_probe_whoami`                       | Caller identity and auth method   |
+| `aws_probe_s3_list_buckets`              | List S3 buckets                   |
+| `aws_probe_s3_list_objects`              | List objects/prefixes in a bucket |
+| `aws_probe_s3_get_object_metadata`       | HeadObject metadata               |
+| `aws_probe_sqs_list_queues`              | List SQS queue URLs               |
+| `aws_probe_sqs_get_queue_url`            | Resolve queue name to URL         |
+| `aws_probe_sqs_receive_message`          | Receive messages (batch capped)   |
+| `aws_probe_secrets_list`                 | List secret names/ARNs            |
+| `aws_probe_sns_list_topics`              | List SNS topic ARNs               |
+| `aws_probe_msk_list_clusters`            | List MSK clusters                 |
+| `aws_probe_msk_list_topics`              | List topics for a cluster         |
+| `aws_probe_msk_consume`                  | Bounded Kafka consume             |
+| `aws_probe_cloudfront_list_certificates` | CloudFront TLS certificate report |
+
+#### MCP prompts
+
+| Prompt                                    | Purpose                                              |
+| ----------------------------------------- | ---------------------------------------------------- |
+| `aws_probe_prompt_check_credentials`      | Workflow to verify credentials via `aws_probe_whoami` |
+| `aws_probe_prompt_audit_s3_prefix`        | Audit/list workflow for S3 bucket prefix               |
+| `aws_probe_prompt_cloudfront_cert_report` | CloudFront TLS/cert review workflow                  |
+
+Resources: `aws-probe://docs/agents`, `aws-probe://docs/cli-reference`,
+`aws-probe://examples/ministack`.
 
 ## License
 
