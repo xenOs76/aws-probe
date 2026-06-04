@@ -1,3 +1,16 @@
+## 0.1.4 (2026-06-04)
+
+### Feat
+
+    Added MCP server functionality to expose aws-probe to AI clients via stdin/stdout using the new mcp CLI command.
+    Added eight MCP tools: identity verification, S3 operations, SQS operations, Secrets Manager, SNS, MSK, CloudFront certificate inventory, and bounded MSK message consumption.
+    Added MCP prompts for credential checking, S3 auditing, and CloudFront certificate reporting.
+    Added MCP resources including CLI reference and agent documentation.
+
+### Doc
+
+    Updated README with MCP server setup guide, tool reference table, and resource links.
+
 ## 0.1.3 (2026-05-28)
 
 ### Feat
