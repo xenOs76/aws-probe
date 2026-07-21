@@ -1,3 +1,20 @@
+## 0.3.0 (2026-07-21)
+
+### Feat
+
+    Added IAM inspection to the CLI, including role and managed policy listings plus detailed policy and role dumps.
+    Added MCP tools for listing roles and policies and retrieving policy or role details in structured output.
+    Added local IAM roles, policies, credentials, and role-assumption workflows for development and testing.
+
+### Doc
+
+    Updated CLI reference and README documentation with IAM commands and tools.
+    Simplified available MCP documentation resources.
+
+### Chore
+
+    Expanded local environment setup and verification commands for IAM scenarios.
+
 ## 0.2.0 (2026-06-04)
 
 ### Feat
