@@ -90,7 +90,7 @@ func s3ListBucketsHandler(deps *Deps) func(
 			return nil, listBucketsOutput{}, err
 		}
 
-		entries, err := listS3Buckets(ctx, internals3.NewClient(cfg))
+		entries, err := listS3Buckets(ctx, deps.s3(cfg))
 		if err != nil {
 			return nil, listBucketsOutput{}, err
 		}
@@ -143,9 +143,7 @@ func s3ListObjectsHandler(deps *Deps) func(
 			delimPtr = &delimiter
 		}
 
-		client := internals3.NewClient(cfg)
-
-		objects, err := collectS3Objects(ctx, client, in.Bucket, in.Prefix, delimPtr)
+		objects, err := collectS3Objects(ctx, deps.s3(cfg), in.Bucket, in.Prefix, delimPtr)
 		if err != nil {
 			return nil, listObjectsOutput{}, err
 		}
@@ -169,7 +167,7 @@ func s3GetObjectMetadataHandler(deps *Deps) func(
 			return nil, objectMetadataOutput{}, err
 		}
 
-		out, err := headS3Object(ctx, internals3.NewClient(cfg), in.Bucket, in.Key)
+		out, err := headS3Object(ctx, deps.s3(cfg), in.Bucket, in.Key)
 		if err != nil {
 			return nil, objectMetadataOutput{}, err
 		}

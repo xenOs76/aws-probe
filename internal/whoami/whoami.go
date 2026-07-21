@@ -18,8 +18,8 @@ type CallerIdentity struct {
 	UserID  string
 }
 
-// stsClient defines the interface for the STS GetCallerIdentity operation.
-type stsClient interface {
+// STSAPI defines the interface for the STS GetCallerIdentity operation.
+type STSAPI interface {
 	GetCallerIdentity(
 		ctx context.Context,
 		params *sts.GetCallerIdentityInput,
@@ -28,7 +28,7 @@ type stsClient interface {
 }
 
 // GetCallerIdentity retrieves the current AWS caller identity using the provided API client.
-func GetCallerIdentity(ctx context.Context, api stsClient) (*CallerIdentity, error) {
+func GetCallerIdentity(ctx context.Context, api STSAPI) (*CallerIdentity, error) {
 	output, err := api.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return nil, fmt.Errorf("getting caller identity: %w", err)
@@ -42,7 +42,7 @@ func GetCallerIdentity(ctx context.Context, api stsClient) (*CallerIdentity, err
 }
 
 // DisplayCallerIdentity retrieves and displays the current AWS caller identity.
-func DisplayCallerIdentity(ctx context.Context, api stsClient, authMethod awsutil.AuthMethod, w io.Writer) error {
+func DisplayCallerIdentity(ctx context.Context, api STSAPI, authMethod awsutil.AuthMethod, w io.Writer) error {
 	identity, err := GetCallerIdentity(ctx, api)
 	if err != nil {
 		return err

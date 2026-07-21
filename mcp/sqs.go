@@ -73,7 +73,7 @@ func sqsListQueuesHandler(deps *Deps) func(
 			return nil, listSQSQueuesOutput{}, err
 		}
 
-		urls, err := listSQSQueueURLs(ctx, internalsqs.NewClient(cfg))
+		urls, err := listSQSQueueURLs(ctx, deps.sqs(cfg))
 		if err != nil {
 			return nil, listSQSQueuesOutput{}, err
 		}
@@ -119,7 +119,7 @@ func sqsGetQueueURLHandler(deps *Deps) func(
 			return nil, getQueueURLOutput{}, err
 		}
 
-		url, err := getSQSQueueURL(ctx, internalsqs.NewClient(cfg), in.QueueName)
+		url, err := getSQSQueueURL(ctx, deps.sqs(cfg), in.QueueName)
 		if err != nil {
 			return nil, getQueueURLOutput{}, err
 		}
@@ -156,7 +156,7 @@ func sqsReceiveMessageHandler(deps *Deps) func(
 			return nil, receiveMessageOutput{}, err
 		}
 
-		messages, err := receiveSQSMessages(ctx, internalsqs.NewClient(cfg), in.QueueURL, maxMessages)
+		messages, err := receiveSQSMessages(ctx, deps.sqs(cfg), in.QueueURL, maxMessages)
 		if err != nil {
 			return nil, receiveMessageOutput{}, err
 		}

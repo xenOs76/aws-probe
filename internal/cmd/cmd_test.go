@@ -77,6 +77,11 @@ func TestNewRootCmd(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mcpCmd)
 	assert.Equal(t, "mcp", mcpCmd.Name())
+
+	iamCmd, _, err := cmd.Find([]string{"iam"})
+	require.NoError(t, err)
+	require.NotNil(t, iamCmd)
+	assert.Equal(t, "iam", iamCmd.Name())
 }
 
 func TestCompletionCommand(t *testing.T) {
@@ -119,6 +124,20 @@ func TestNewCloudfrontCmd(t *testing.T) {
 	require.NotNil(t, cmd)
 	assert.Equal(t, "cloudfront", cmd.Use)
 	assert.NotNil(t, cmd.Flags().Lookup("list-certificates"))
+	assert.NotNil(t, cmd.Flags().Lookup("output"))
+	assert.NotNil(t, cmd.Flags().Lookup("theme"))
+}
+
+func TestNewIamCmd(t *testing.T) {
+	cmd := newIamCmd()
+
+	require.NotNil(t, cmd)
+	assert.Equal(t, "iam", cmd.Use)
+	assert.NotNil(t, cmd.Flags().Lookup("list-roles"))
+	assert.NotNil(t, cmd.Flags().Lookup("list-policies"))
+	assert.NotNil(t, cmd.Flags().Lookup("dump-policy"))
+	assert.NotNil(t, cmd.Flags().Lookup("dump-role"))
+	assert.NotNil(t, cmd.Flags().Lookup("scope"))
 	assert.NotNil(t, cmd.Flags().Lookup("output"))
 	assert.NotNil(t, cmd.Flags().Lookup("theme"))
 }
@@ -243,6 +262,30 @@ func TestCommandRunE_Error(t *testing.T) {
 			c := newS3Cmd()
 			setFlag(t, c, "get-metadata", "b")
 			setFlag(t, c, "key", "k")
+
+			return c
+		}(), []string{}},
+		{"iam --list-roles", func() *cobra.Command {
+			c := newIamCmd()
+			setFlag(t, c, "list-roles", "true")
+
+			return c
+		}(), []string{}},
+		{"iam --list-policies", func() *cobra.Command {
+			c := newIamCmd()
+			setFlag(t, c, "list-policies", "true")
+
+			return c
+		}(), []string{}},
+		{"iam --dump-policy", func() *cobra.Command {
+			c := newIamCmd()
+			setFlag(t, c, "dump-policy", "policy-name")
+
+			return c
+		}(), []string{}},
+		{"iam --dump-role", func() *cobra.Command {
+			c := newIamCmd()
+			setFlag(t, c, "dump-role", "role-name")
 
 			return c
 		}(), []string{}},
@@ -428,6 +471,11 @@ func TestCommandActionRequiredErrors(t *testing.T) {
 			cmd:     newCloudfrontCmd(),
 			wantErr: "an action flag is required",
 		},
+		{
+			name:    "iam requires action",
+			cmd:     newIamCmd(),
+			wantErr: "an action flag is required",
+		},
 	}
 
 	for _, tt := range tests {
@@ -437,4 +485,27 @@ func TestCommandActionRequiredErrors(t *testing.T) {
 			assert.Contains(t, err.Error(), tt.wantErr)
 		})
 	}
+}
+
+func TestHasMSKParameterFlags(t *testing.T) {
+	t.Parallel()
+
+	assert.False(t, hasMSKParameterFlags(mskOptions{auth: "iam", tls: true, acks: -1}))
+	assert.True(t, hasMSKParameterFlags(mskOptions{auth: "iam", tls: true, acks: -1, brokers: "b"}))
+	assert.True(t, hasMSKParameterFlags(mskOptions{auth: "iam", tls: true, acks: -1, clusterARN: "arn"}))
+	assert.True(t, hasMSKParameterFlags(mskOptions{auth: "iam", tls: true, acks: -1, topic: "t"}))
+	assert.True(t, hasMSKParameterFlags(mskOptions{auth: "none", tls: true, acks: -1}))
+	assert.True(t, hasMSKParameterFlags(mskOptions{auth: "iam", tls: false, acks: -1}))
+	assert.True(t, hasMSKParameterFlags(mskOptions{auth: "iam", tls: true, acks: -1, message: "m"}))
+	assert.True(t, hasMSKParameterFlags(mskOptions{auth: "iam", tls: true, acks: -1, key: "k"}))
+	assert.True(t, hasMSKParameterFlags(mskOptions{auth: "iam", tls: true, acks: -1, group: "g"}))
+	assert.True(t, hasMSKParameterFlags(mskOptions{auth: "iam", tls: true, acks: -1, fromStart: true}))
+	assert.True(t, hasMSKParameterFlags(mskOptions{auth: "iam", tls: true, acks: 1}))
+	assert.True(t, hasMSKParameterFlags(mskOptions{auth: "iam", tls: true, acks: -1, verbose: true}))
+}
+
+func TestRootHelp(t *testing.T) {
+	root := newRootCmd()
+	root.SetArgs([]string{"--help"})
+	require.NoError(t, root.Execute())
 }

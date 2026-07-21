@@ -56,6 +56,10 @@ func TestRegister(t *testing.T) {
 	}
 
 	assert.Contains(t, toolNames, "aws_probe_whoami")
+	assert.Contains(t, toolNames, "aws_probe_iam_list_roles")
+	assert.Contains(t, toolNames, "aws_probe_iam_list_policies")
+	assert.Contains(t, toolNames, "aws_probe_iam_dump_policy")
+	assert.Contains(t, toolNames, "aws_probe_iam_dump_role")
 
 	prompts, err := session.ListPrompts(ctx, &mcp.ListPromptsParams{})
 	require.NoError(t, err)

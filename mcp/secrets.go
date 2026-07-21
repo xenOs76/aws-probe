@@ -36,7 +36,7 @@ func secretsListHandler(deps *Deps) func(
 			return nil, listSecretsOutput{}, err
 		}
 
-		secrets, err := listSecretsForMCP(ctx, internalsecrets.NewClient(cfg))
+		secrets, err := listSecretsForMCP(ctx, deps.secrets(cfg))
 		if err != nil {
 			return nil, listSecretsOutput{}, err
 		}

@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/xenos76/aws-probe/internal/awsutil"
-	internalsns "github.com/xenos76/aws-probe/internal/sns"
 )
 
 type listTopicsOutput struct {
@@ -24,7 +23,7 @@ func registerSNSTools(server *mcp.Server, deps *Deps) {
 			return nil, listTopicsOutput{}, err
 		}
 
-		client := internalsns.NewClient(cfg)
+		client := deps.sns(cfg)
 		paginator := sns.NewListTopicsPaginator(client, &sns.ListTopicsInput{})
 
 		arns := make([]string, 0)

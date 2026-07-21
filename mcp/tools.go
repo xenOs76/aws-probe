@@ -12,4 +12,5 @@ func registerTools(server *mcp.Server, deps *Deps) {
 	registerSNSTools(server, deps)
 	registerMSKTools(server, deps)
 	registerCloudFrontTools(server, deps)
+	registerIAMTools(server, deps)
 }

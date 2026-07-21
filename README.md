@@ -1,7 +1,5 @@
 # aws-probe
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/xenos76/aws-probe)](https://goreportcard.com/report/github.com/xenos76/aws-probe)
-
 <p align="center">
     <img width="650" alt="aws-probe Logo" src="./assets/img/aws-probe-logo.png"/><br />
     <i>A tool for checking cloud wiring</i>
@@ -253,17 +251,20 @@ aws-probe mcp
 | `aws_probe_msk_list_topics`              | List topics for a cluster         |
 | `aws_probe_msk_consume`                  | Bounded Kafka consume             |
 | `aws_probe_cloudfront_list_certificates` | CloudFront TLS certificate report |
+| `aws_probe_iam_list_roles`               | List IAM roles                    |
+| `aws_probe_iam_list_policies`            | List IAM managed policies         |
+| `aws_probe_iam_dump_policy`              | Dump managed policy + services    |
+| `aws_probe_iam_dump_role`                | Dump role trust/attached/inline   |
 
 #### MCP prompts
 
-| Prompt                                    | Purpose                                              |
-| ----------------------------------------- | ---------------------------------------------------- |
+| Prompt                                    | Purpose                                               |
+| ----------------------------------------- | ----------------------------------------------------- |
 | `aws_probe_prompt_check_credentials`      | Workflow to verify credentials via `aws_probe_whoami` |
-| `aws_probe_prompt_audit_s3_prefix`        | Audit/list workflow for S3 bucket prefix               |
-| `aws_probe_prompt_cloudfront_cert_report` | CloudFront TLS/cert review workflow                  |
+| `aws_probe_prompt_audit_s3_prefix`        | Audit/list workflow for S3 bucket prefix              |
+| `aws_probe_prompt_cloudfront_cert_report` | CloudFront TLS/cert review workflow                   |
 
-Resources: `aws-probe://docs/agents`, `aws-probe://docs/cli-reference`,
-`aws-probe://examples/ministack`.
+Resources: `aws-probe://docs/agents`, `aws-probe://docs/cli-reference`.
 
 ## License
 

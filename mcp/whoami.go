@@ -28,7 +28,7 @@ func registerWhoamiTools(server *mcp.Server, deps *Deps) {
 			return nil, whoamiOutput{}, err
 		}
 
-		identity, err := whoami.GetCallerIdentity(ctx, whoami.NewSTSClient(cfg))
+		identity, err := whoami.GetCallerIdentity(ctx, deps.sts(cfg))
 		if err != nil {
 			return nil, whoamiOutput{}, err
 		}
