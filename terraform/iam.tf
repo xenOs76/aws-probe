@@ -20,6 +20,11 @@ resource "aws_iam_policy" "s3_read_only" {
     Statement = [
       {
         Effect   = "Allow"
+        Action   = "s3:ListAllMyBuckets"
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
         Action   = "s3:ListBucket"
         Resource = aws_s3_bucket.test_bucket.arn
       },
