@@ -101,7 +101,7 @@ func mskListClustersHandler(deps *Deps) func(
 			return nil, listMSKClustersOutput{}, err
 		}
 
-		clusters, err := listMSKClustersForMCP(ctx, internalmsk.NewClient(cfg))
+		clusters, err := listMSKClustersForMCP(ctx, deps.msk(cfg))
 		if err != nil {
 			return nil, listMSKClustersOutput{}, err
 		}
@@ -153,7 +153,7 @@ func mskListTopicsHandler(deps *Deps) func(
 			return nil, listMSKTopicsOutput{}, err
 		}
 
-		topics, err := listMSKTopicsForMCP(ctx, internalmsk.NewClient(cfg), in.ClusterARN)
+		topics, err := listMSKTopicsForMCP(ctx, deps.msk(cfg), in.ClusterARN)
 		if err != nil {
 			return nil, listMSKTopicsOutput{}, err
 		}
@@ -210,7 +210,7 @@ func mskConsumeHandler(deps *Deps) func(
 			return nil, mskConsumeOutput{}, err
 		}
 
-		mskClient := internalmsk.NewClient(cfg)
+		mskClient := deps.msk(cfg)
 
 		brokers, err := internalmsk.ResolveBrokers(
 			ctx, in.Brokers, in.ClusterARN, opts.auth, opts.useTLS, mskClient,
@@ -289,8 +289,23 @@ func parseMSKConsumeInput(in mskConsumeInput) (mskConsumeOptions, error) {
 func consumeBounded(ctx context.Context, cfg aws.Config, kcfg internalkafka.Config, maxRecords int) (
 	[]kafkaRecord, error,
 ) {
-	svc := internalkafka.NewService(cfg, nil)
+	return consumeBoundedWith(ctx, newKafkaService(cfg), kcfg, maxRecords)
+}
 
+func newKafkaService(cfg aws.Config) kafkaConsumer {
+	return internalkafka.NewService(cfg, nil)
+}
+
+type kafkaConsumer interface {
+	Consume(ctx context.Context, cfg internalkafka.Config, handler func(*internalkafka.Record)) error
+}
+
+func consumeBoundedWith(
+	ctx context.Context,
+	svc kafkaConsumer,
+	kcfg internalkafka.Config,
+	maxRecords int,
+) ([]kafkaRecord, error) {
 	var (
 		collected []kafkaRecord
 		mu        sync.Mutex

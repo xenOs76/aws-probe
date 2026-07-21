@@ -3,6 +3,7 @@ package s3
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -264,4 +265,168 @@ VERSIONING
 			require.Contains(t, buf.String(), "KEY                     test-key")
 		})
 	}
+}
+
+func TestGetKMSKeyARN(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("success", func(t *testing.T) {
+		kmsMock := &mockKMSClient{
+			DescribeKeyFunc: func(_ context.Context, in *kms.DescribeKeyInput, _ ...func(*kms.Options)) (
+				*kms.DescribeKeyOutput, error,
+			) {
+				require.Equal(t, "key-1", aws.ToString(in.KeyId))
+
+				return &kms.DescribeKeyOutput{
+					KeyMetadata: &kmstypes.KeyMetadata{Arn: aws.String("arn:aws:kms:us-east-1:1:key/key-1")},
+				}, nil
+			},
+		}
+		arn, err := getKMSKeyARN(ctx, kmsMock, "key-1")
+		require.NoError(t, err)
+		require.Equal(t, "arn:aws:kms:us-east-1:1:key/key-1", arn)
+	})
+
+	t.Run("describe error", func(t *testing.T) {
+		kmsMock := &mockKMSClient{
+			DescribeKeyFunc: func(_ context.Context, _ *kms.DescribeKeyInput, _ ...func(*kms.Options)) (
+				*kms.DescribeKeyOutput, error,
+			) {
+				return nil, errors.New("denied")
+			},
+		}
+		_, err := getKMSKeyARN(ctx, kmsMock, "key-1")
+		require.Error(t, err)
+	})
+
+	t.Run("empty metadata", func(t *testing.T) {
+		kmsMock := &mockKMSClient{
+			DescribeKeyFunc: func(_ context.Context, _ *kms.DescribeKeyInput, _ ...func(*kms.Options)) (
+				*kms.DescribeKeyOutput, error,
+			) {
+				return &kms.DescribeKeyOutput{}, nil
+			},
+		}
+		arn, err := getKMSKeyARN(ctx, kmsMock, "key-1")
+		require.NoError(t, err)
+		require.Empty(t, arn)
+	})
+}
+
+func TestGetKMSKeyName(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("found", func(t *testing.T) {
+		kmsMock := &mockKMSClient{
+			ListAliasesFunc: func(_ context.Context, _ *kms.ListAliasesInput, _ ...func(*kms.Options)) (
+				*kms.ListAliasesOutput, error,
+			) {
+				return &kms.ListAliasesOutput{
+					Aliases: []kmstypes.AliasListEntry{{
+						AliasName:   aws.String("alias/my-key"),
+						TargetKeyId: aws.String("key-1"),
+					}},
+				}, nil
+			},
+		}
+		name, err := getKMSKeyName(ctx, kmsMock, "key-1")
+		require.NoError(t, err)
+		require.Equal(t, "my-key", name)
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		kmsMock := &mockKMSClient{
+			ListAliasesFunc: func(_ context.Context, _ *kms.ListAliasesInput, _ ...func(*kms.Options)) (
+				*kms.ListAliasesOutput, error,
+			) {
+				return &kms.ListAliasesOutput{}, nil
+			},
+		}
+		_, err := getKMSKeyName(ctx, kmsMock, "key-1")
+		require.Error(t, err)
+	})
+
+	t.Run("list error", func(t *testing.T) {
+		kmsMock := &mockKMSClient{
+			ListAliasesFunc: func(_ context.Context, _ *kms.ListAliasesInput, _ ...func(*kms.Options)) (
+				*kms.ListAliasesOutput, error,
+			) {
+				return nil, errors.New("fail")
+			},
+		}
+		_, err := getKMSKeyName(ctx, kmsMock, "key-1")
+		require.Error(t, err)
+	})
+}
+
+func TestGetObjectMetadata_KMSAndExtras(t *testing.T) {
+	retain := time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)
+	api := &mockS3Client{
+		HeadObjectFunc: func(_ context.Context, _ *s3.HeadObjectInput, _ ...func(*s3.Options)) (
+			*s3.HeadObjectOutput, error,
+		) {
+			return &s3.HeadObjectOutput{
+				ContentLength:             aws.Int64(10),
+				ETag:                      aws.String(`"e"`),
+				ServerSideEncryption:      s3types.ServerSideEncryptionAwsKms,
+				SSEKMSKeyId:               aws.String("key-1"),
+				BucketKeyEnabled:          aws.Bool(true),
+				ObjectLockMode:            s3types.ObjectLockModeCompliance,
+				ObjectLockLegalHoldStatus: s3types.ObjectLockLegalHoldStatusOn,
+				ObjectLockRetainUntilDate: &retain,
+				ChecksumSHA256:            aws.String("abc"),
+				Metadata:                  map[string]string{"owner": "x"},
+				DeleteMarker:              aws.Bool(true),
+			}, nil
+		},
+	}
+	kmsMock := &mockKMSClient{
+		DescribeKeyFunc: func(_ context.Context, _ *kms.DescribeKeyInput, _ ...func(*kms.Options)) (
+			*kms.DescribeKeyOutput, error,
+		) {
+			return &kms.DescribeKeyOutput{
+				KeyMetadata: &kmstypes.KeyMetadata{Arn: aws.String("arn:kms:key-1")},
+			}, nil
+		},
+		ListAliasesFunc: func(_ context.Context, _ *kms.ListAliasesInput, _ ...func(*kms.Options)) (
+			*kms.ListAliasesOutput, error,
+		) {
+			return &kms.ListAliasesOutput{
+				Aliases: []kmstypes.AliasListEntry{{
+					AliasName: aws.String("alias/prod"), TargetKeyId: aws.String("key-1"),
+				}},
+			}, nil
+		},
+	}
+
+	var buf bytes.Buffer
+
+	err := GetObjectMetadata(context.Background(), "b", "k", api, kmsMock, kmsMock, &buf)
+	require.NoError(t, err)
+
+	out := buf.String()
+	require.Contains(t, out, "SSE-KMS KEY ARN")
+	require.Contains(t, out, "prod")
+	require.Contains(t, out, "OBJECT LOCK")
+	require.Contains(t, out, "CUSTOM METADATA")
+	require.Contains(t, out, "DELETE MARKER")
+}
+
+func TestFormatSizeAndStripPrefix(t *testing.T) {
+	require.Equal(t, "0 B", FormatSize(0))
+	require.Equal(t, "1.0 KB", FormatSize(1024))
+	require.Equal(t, "file", StripPrefix("pre/file", "pre/"))
+	require.Equal(t, "pre/file", StripPrefix("pre/file", ""))
+}
+
+func TestGetObjectMetadata_HeadError(t *testing.T) {
+	api := &mockS3Client{
+		HeadObjectFunc: func(_ context.Context, _ *s3.HeadObjectInput, _ ...func(*s3.Options)) (
+			*s3.HeadObjectOutput, error,
+		) {
+			return nil, errors.New("missing")
+		},
+	}
+	err := GetObjectMetadata(context.Background(), "b", "k", api, nil, nil, &bytes.Buffer{})
+	require.Error(t, err)
 }

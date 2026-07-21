@@ -23,7 +23,9 @@ func registerCloudFrontTools(server *mcp.Server, deps *Deps) {
 			return nil, listCloudFrontCertsOutput{}, err
 		}
 
-		reports, err := internalcf.CollectCertificates(ctx, internalcf.NewClient(cfg), internalcf.NewACMClient(cfg))
+		cf, acm := deps.cloudFront(cfg)
+
+		reports, err := internalcf.CollectCertificates(ctx, cf, acm)
 		if err != nil {
 			return nil, listCloudFrontCertsOutput{}, err
 		}

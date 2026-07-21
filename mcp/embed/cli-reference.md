@@ -16,6 +16,7 @@
 | `sns` | `--list-topics` |
 | `msk` | `--list-clusters`, `--list-topics`, `--produce`, `--consume` |
 | `cloudfront` | `--list-certificates` (`--output`, `--theme`) |
+| `iam` | `--list-roles`, `--list-policies`, `--dump-policy`, `--dump-role` |
 | `mcp` | MCP server on stdio |
 | `completion` | Shell completions |
 

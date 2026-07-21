@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/kafka"
@@ -231,4 +232,26 @@ func TestResolveBrokers(t *testing.T) {
 		_, err := selectBrokerString(emptyOut, "none", false)
 		require.Error(t, err)
 	})
+}
+
+func TestBuildLogger(t *testing.T) {
+	var buf bytes.Buffer
+	require.NotNil(t, buildLogger(true, &buf))
+	require.NotNil(t, buildLogger(false, &buf))
+}
+
+func TestProduce_VerboseBuildsLogger(_ *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	var buf bytes.Buffer
+	// Unreachable broker: expect an error from the kafka client path.
+	_ = Produce(ctx, aws.Config{}, ProduceConfig{
+		Brokers: []string{"127.0.0.1:1"},
+		Topic:   "t",
+		Auth:    "none",
+		Key:     "k",
+		Message: "m",
+		Verbose: true,
+	}, &buf)
 }

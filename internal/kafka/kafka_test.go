@@ -110,13 +110,34 @@ func TestConsumeClientError(t *testing.T) {
 	assert.Contains(t, err.Error(), "factory error")
 }
 
+func TestProduceAcksAndConsumeOptions(t *testing.T) {
+	cfg := aws.Config{}
+	svc := NewService(cfg, slog.Default())
+	svc.clientFactory = func(...kgo.Opt) (*kgo.Client, error) {
+		return nil, errors.New("stop after opts")
+	}
+
+	for _, acks := range []int16{0, 1, -1} {
+		err := svc.Produce(context.Background(), Config{
+			Brokers: []string{"localhost:9092"}, Auth: "none", Acks: acks, Topic: "t",
+		}, []byte("k"), []byte("v"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "stop after opts")
+	}
+
+	err := svc.Consume(context.Background(), Config{
+		Brokers: []string{"localhost:9092"}, Auth: "none", Topic: "t", Group: "g", FromBeginning: true,
+	}, func(*Record) {})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "stop after opts")
+}
+
 func TestKgoLogger(t *testing.T) {
 	svc := NewService(aws.Config{}, slog.Default())
 	kl := &kgoLogger{s: svc}
 
 	assert.Equal(t, kgo.LogLevelDebug, kl.Level())
 
-	// Just exercise the switch statement
 	kl.Log(kgo.LogLevelError, "test error")
 	kl.Log(kgo.LogLevelWarn, "test warn")
 	kl.Log(kgo.LogLevelInfo, "test info")

@@ -16,6 +16,8 @@ provider "aws" {
     sqs            = "http://localhost:4566"
     cloudfront     = "http://localhost:4566"
     acm            = "http://localhost:4566"
+    iam            = "http://localhost:4566"
+    sts            = "http://localhost:4566"
   }
 }
 
