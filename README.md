@@ -173,6 +173,28 @@ Manage CloudFront distributions and associated resources.
 aws-probe cloudfront --list-certificates
 ```
 
+### IAM Operations
+
+List and dump IAM roles and managed policies. Requires IAM read permissions on
+the caller principal.
+
+```shell
+# List customer-managed policies (default --scope Local; also AWS, All)
+aws-probe iam --list-policies
+
+# List all roles as JSON
+aws-probe iam --list-roles --output json
+
+# Dump a managed policy document and granted services
+aws-probe iam --dump-policy aws-probe-s3-read-only
+
+# Dump a role trust policy and attached/inline policies
+aws-probe iam --dump-role aws-probe-s3-read-only --output json
+```
+
+Output format (`-o/--output`: table, csv, json) and theme (`-t/--theme`) are
+supported.
+
 ### SNS & SQS
 
 ```shell
