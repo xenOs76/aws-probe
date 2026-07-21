@@ -1,7 +1,5 @@
 # aws-probe
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/xenos76/aws-probe)](https://goreportcard.com/report/github.com/xenos76/aws-probe)
-
 <p align="center">
     <img width="650" alt="aws-probe Logo" src="./assets/img/aws-probe-logo.png"/><br />
     <i>A tool for checking cloud wiring</i>
@@ -260,11 +258,11 @@ aws-probe mcp
 
 #### MCP prompts
 
-| Prompt                                    | Purpose                                              |
-| ----------------------------------------- | ---------------------------------------------------- |
+| Prompt                                    | Purpose                                               |
+| ----------------------------------------- | ----------------------------------------------------- |
 | `aws_probe_prompt_check_credentials`      | Workflow to verify credentials via `aws_probe_whoami` |
-| `aws_probe_prompt_audit_s3_prefix`        | Audit/list workflow for S3 bucket prefix               |
-| `aws_probe_prompt_cloudfront_cert_report` | CloudFront TLS/cert review workflow                  |
+| `aws_probe_prompt_audit_s3_prefix`        | Audit/list workflow for S3 bucket prefix              |
+| `aws_probe_prompt_cloudfront_cert_report` | CloudFront TLS/cert review workflow                   |
 
 Resources: `aws-probe://docs/agents`, `aws-probe://docs/cli-reference`.
 
