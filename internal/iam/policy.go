@@ -16,7 +16,7 @@ func decodePolicyDocument(encoded string) (any, error) {
 		return nil, errors.New("empty policy document")
 	}
 
-	decoded, err := url.QueryUnescape(encoded)
+	decoded, err := url.PathUnescape(encoded)
 	if err != nil {
 		return nil, fmt.Errorf("url-decoding policy document: %w", err)
 	}
