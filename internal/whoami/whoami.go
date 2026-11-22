@@ -49,10 +49,22 @@ func DisplayCallerIdentity(ctx context.Context, api STSAPI, authMethod awsutil.A
 	}
 
 	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-	fmt.Fprintf(tw, "ACCOUNT\t%s\n", identity.Account)
-	fmt.Fprintf(tw, "ARN\t%s\n", identity.Arn)
-	fmt.Fprintf(tw, "USER ID\t%s\n", identity.UserID)
-	fmt.Fprintf(tw, "AUTH METHOD\t%s\n", authMethod.IdentitySource)
+
+	if _, err := fmt.Fprintf(tw, "ACCOUNT\t%s\n", identity.Account); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprintf(tw, "ARN\t%s\n", identity.Arn); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprintf(tw, "USER ID\t%s\n", identity.UserID); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprintf(tw, "AUTH METHOD\t%s\n", authMethod.IdentitySource); err != nil {
+		return err
+	}
 
 	return tw.Flush()
 }

@@ -46,20 +46,16 @@ func ListTopics(ctx context.Context, api TopicsLister, w io.Writer) error {
 		}
 
 		for _, topic := range output.Topics {
-			if !hasTopics {
-				fmt.Fprint(tw, "TOPIC ARN\n")
-
-				hasTopics = true
+			if err := writeTopicRow(tw, &hasTopics, awsutil.DerefString(topic.TopicArn)); err != nil {
+				return err
 			}
-
-			fmt.Fprintf(tw, "%s\n",
-				awsutil.DerefString(topic.TopicArn),
-			)
 		}
 	}
 
 	if !hasTopics {
-		fmt.Fprintln(w, "No SNS topics found.")
+		if _, err := fmt.Fprintln(w, "No SNS topics found."); err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -86,28 +82,61 @@ func ListSubscriptions(ctx context.Context, topicArn string, api SubscriptionsLi
 		}
 
 		for _, sub := range output.Subscriptions {
-			if !hasSubs {
-				fmt.Fprint(tw, "TOPIC ARN\tPROTOCOL\tENDPOINT\tOWNER\n")
-
-				hasSubs = true
-			}
-
-			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n",
-				awsutil.DerefString(sub.TopicArn),
-				awsutil.DerefString(sub.Protocol),
-				awsutil.DerefString(sub.Endpoint),
-				awsutil.DerefString(sub.Owner),
+			err := writeSubscriptionRow(
+				tw, &hasSubs, sub.TopicArn, sub.Protocol, sub.Endpoint, sub.Owner,
 			)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	if !hasSubs {
-		fmt.Fprintln(w, "No subscriptions found.")
+		if _, err := fmt.Fprintln(w, "No subscriptions found."); err != nil {
+			return err
+		}
 
 		return nil
 	}
 
 	return tw.Flush()
+}
+
+func writeTopicRow(tw *tabwriter.Writer, hasTopics *bool, topicArn string) error {
+	if !*hasTopics {
+		if _, err := fmt.Fprint(tw, "TOPIC ARN\n"); err != nil {
+			return err
+		}
+
+		*hasTopics = true
+	}
+
+	_, err := fmt.Fprintf(tw, "%s\n", topicArn)
+
+	return err
+}
+
+func writeSubscriptionRow(
+	tw *tabwriter.Writer,
+	hasSubs *bool,
+	topicArn, protocol, endpoint, owner *string,
+) error {
+	if !*hasSubs {
+		if _, err := fmt.Fprint(tw, "TOPIC ARN\tPROTOCOL\tENDPOINT\tOWNER\n"); err != nil {
+			return err
+		}
+
+		*hasSubs = true
+	}
+
+	_, err := fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n",
+		awsutil.DerefString(topicArn),
+		awsutil.DerefString(protocol),
+		awsutil.DerefString(endpoint),
+		awsutil.DerefString(owner),
+	)
+
+	return err
 }
 
 // NewClient creates a new SNS client.

@@ -82,26 +82,26 @@ func NewKMSClient(cfg aws.Config) *kms.Client {
 }
 
 func displayGeneralInfo(tw *tabwriter.Writer, key string, output *s3.HeadObjectOutput) {
-	fmt.Fprintln(tw, "\nGENERAL")
-	fmt.Fprintf(tw, metadataFieldFormat, "KEY", key)
-	fmt.Fprintf(tw, metadataFieldFormat, "SIZE", FormatSize(awsutil.DerefInt64(output.ContentLength)))
-	fmt.Fprintf(tw, metadataFieldFormat, "ETAG", formatETag(output.ETag))
+	_, _ = fmt.Fprintln(tw, "\nGENERAL")
+	_, _ = fmt.Fprintf(tw, metadataFieldFormat, "KEY", key)
+	_, _ = fmt.Fprintf(tw, metadataFieldFormat, "SIZE", FormatSize(awsutil.DerefInt64(output.ContentLength)))
+	_, _ = fmt.Fprintf(tw, metadataFieldFormat, "ETAG", formatETag(output.ETag))
 
 	if output.DeleteMarker != nil && *output.DeleteMarker {
-		fmt.Fprintf(tw, metadataFieldFormat, "DELETE MARKER", "true")
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "DELETE MARKER", "true")
 	}
 
 	if output.Expiration != nil {
-		fmt.Fprintf(tw, metadataFieldFormat, "EXPIRATION", awsutil.DerefString(output.Expiration))
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "EXPIRATION", awsutil.DerefString(output.Expiration))
 	}
 
 	if output.Restore != nil {
-		fmt.Fprintf(tw, metadataFieldFormat, "RESTORE", awsutil.DerefString(output.Restore))
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "RESTORE", awsutil.DerefString(output.Restore))
 	}
 }
 
 func displayContentInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
-	fmt.Fprintln(tw, "\nCONTENT")
+	_, _ = fmt.Fprintln(tw, "\nCONTENT")
 	fmtField(tw, "CONTENT-TYPE", output.ContentType)
 	fmtField(tw, "CONTENT-ENCODING", output.ContentEncoding)
 	fmtField(tw, "CONTENT-LANGUAGE", output.ContentLanguage)
@@ -111,31 +111,31 @@ func displayContentInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 	fmtField(tw, "ACCEPT-RANGES", output.AcceptRanges)
 
 	if output.Expires != nil {
-		fmt.Fprintf(tw, metadataFieldFormat, "EXPIRES", output.Expires.Format(time.RFC1123))
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "EXPIRES", output.Expires.Format(time.RFC1123))
 	}
 
 	if output.ExpiresString != nil {
-		fmt.Fprintf(tw, metadataFieldFormat, "EXPIRES (STRING)", awsutil.DerefString(output.ExpiresString))
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "EXPIRES (STRING)", awsutil.DerefString(output.ExpiresString))
 	}
 }
 
 func displayStorageInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
-	fmt.Fprintln(tw, "\nSTORAGE")
+	_, _ = fmt.Fprintln(tw, "\nSTORAGE")
 
 	if output.StorageClass != "" {
-		fmt.Fprintf(tw, metadataFieldFormat, "STORAGE CLASS", string(output.StorageClass))
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "STORAGE CLASS", string(output.StorageClass))
 	}
 
 	if output.LastModified != nil {
-		fmt.Fprintf(tw, metadataFieldFormat, "LAST MODIFIED", formatTime(output.LastModified))
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "LAST MODIFIED", formatTime(output.LastModified))
 	}
 
 	if output.PartsCount != nil {
-		fmt.Fprintf(tw, "%-24s%d\n", "PARTS COUNT", *output.PartsCount)
+		_, _ = fmt.Fprintf(tw, "%-24s%d\n", "PARTS COUNT", *output.PartsCount)
 	}
 
 	if output.MissingMeta != nil {
-		fmt.Fprintf(tw, "%-24s%d\n", "MISSING META", *output.MissingMeta)
+		_, _ = fmt.Fprintf(tw, "%-24s%d\n", "MISSING META", *output.MissingMeta)
 	}
 }
 
@@ -146,17 +146,17 @@ func displayEncryptionInfo(
 	kmsClient KMSKeyDescriber,
 	kmsAliasesClient KMSAliasesLister,
 ) {
-	fmt.Fprintln(tw, "\nENCRYPTION")
+	_, _ = fmt.Fprintln(tw, "\nENCRYPTION")
 
 	sse := string(output.ServerSideEncryption)
 	if sse == "" {
-		fmt.Fprintf(tw, metadataFieldFormat, "SERVER-SIDE ENCRYPTION", "None")
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "SERVER-SIDE ENCRYPTION", "None")
 	} else {
-		fmt.Fprintf(tw, metadataFieldFormat, "SERVER-SIDE ENCRYPTION", sse)
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "SERVER-SIDE ENCRYPTION", sse)
 	}
 
 	if output.BucketKeyEnabled != nil {
-		fmt.Fprintf(tw, "%-24s%t\n", "BUCKET KEY ENABLED", *output.BucketKeyEnabled)
+		_, _ = fmt.Fprintf(tw, "%-24s%t\n", "BUCKET KEY ENABLED", *output.BucketKeyEnabled)
 	}
 
 	fmtField(tw, "SSE-CUSTOMER ALGORITHM", output.SSECustomerAlgorithm)
@@ -164,27 +164,27 @@ func displayEncryptionInfo(
 
 	if output.SSEKMSKeyId != nil {
 		kmsKeyID := awsutil.DerefString(output.SSEKMSKeyId)
-		fmt.Fprintf(tw, metadataFieldFormat, "SSE-KMS KEY ID", kmsKeyID)
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "SSE-KMS KEY ID", kmsKeyID)
 
 		kmsKeyARN, err := getKMSKeyARN(ctx, kmsClient, kmsKeyID)
 		if err == nil && kmsKeyARN != "" {
-			fmt.Fprintf(tw, metadataFieldFormat, "SSE-KMS KEY ARN", kmsKeyARN)
+			_, _ = fmt.Fprintf(tw, metadataFieldFormat, "SSE-KMS KEY ARN", kmsKeyARN)
 		}
 
 		keyName, err := getKMSKeyName(ctx, kmsAliasesClient, kmsKeyID)
 		if err == nil && keyName != "" {
-			fmt.Fprintf(tw, metadataFieldFormat, "SSE-KMS KEY NAME", keyName)
+			_, _ = fmt.Fprintf(tw, metadataFieldFormat, "SSE-KMS KEY NAME", keyName)
 		}
 	}
 }
 
 func displayVersioningInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
-	fmt.Fprintln(tw, "\nVERSIONING")
+	_, _ = fmt.Fprintln(tw, "\nVERSIONING")
 	fmtField(tw, "VERSION ID", output.VersionId)
 
 	replicationStatus := string(output.ReplicationStatus)
 	if replicationStatus != "" {
-		fmt.Fprintf(tw, metadataFieldFormat, "REPLICATION STATUS", replicationStatus)
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "REPLICATION STATUS", replicationStatus)
 	}
 }
 
@@ -197,19 +197,19 @@ func displayObjectLockInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 		return
 	}
 
-	fmt.Fprintln(tw, "\nOBJECT LOCK")
+	_, _ = fmt.Fprintln(tw, "\nOBJECT LOCK")
 
 	if output.ObjectLockLegalHoldStatus != "" {
-		fmt.Fprintf(tw, metadataFieldFormat, "LEGAL HOLD STATUS",
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "LEGAL HOLD STATUS",
 			string(output.ObjectLockLegalHoldStatus))
 	}
 
 	if output.ObjectLockMode != "" {
-		fmt.Fprintf(tw, metadataFieldFormat, "LOCK MODE", string(output.ObjectLockMode))
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "LOCK MODE", string(output.ObjectLockMode))
 	}
 
 	if output.ObjectLockRetainUntilDate != nil {
-		fmt.Fprintf(tw, metadataFieldFormat, "RETAIN UNTIL DATE",
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "RETAIN UNTIL DATE",
 			output.ObjectLockRetainUntilDate.Format("2006-01-02 15:04:05 MST"))
 	}
 }
@@ -226,11 +226,11 @@ func displayOtherInfo(tw *tabwriter.Writer, output *s3.HeadObjectOutput) {
 		return
 	}
 
-	fmt.Fprintln(tw, "\nOTHER")
+	_, _ = fmt.Fprintln(tw, "\nOTHER")
 	fmtField(tw, "WEBSITE REDIRECT", output.WebsiteRedirectLocation)
 
 	if output.ChecksumType != "" {
-		fmt.Fprintf(tw, metadataFieldFormat, "CHECKSUM TYPE", string(output.ChecksumType))
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, "CHECKSUM TYPE", string(output.ChecksumType))
 	}
 
 	fmtField(tw, "CHECKSUM CRC32", output.ChecksumCRC32)
@@ -245,16 +245,16 @@ func displayCustomMetadata(tw *tabwriter.Writer, metadata map[string]string) {
 		return
 	}
 
-	fmt.Fprintln(tw, "\nCUSTOM METADATA")
+	_, _ = fmt.Fprintln(tw, "\nCUSTOM METADATA")
 
 	for k, v := range metadata {
-		fmt.Fprintf(tw, "  %-22s%s\n", k, v)
+		_, _ = fmt.Fprintf(tw, "  %-22s%s\n", k, v)
 	}
 }
 
 func fmtField(tw *tabwriter.Writer, label string, value *string) {
 	if value != nil && *value != "" {
-		fmt.Fprintf(tw, metadataFieldFormat, label, *value)
+		_, _ = fmt.Fprintf(tw, metadataFieldFormat, label, *value)
 	}
 }
 

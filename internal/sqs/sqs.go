@@ -66,17 +66,23 @@ func ListQueues(ctx context.Context, api Lister, w io.Writer) error {
 	}
 
 	if len(allQueueUrls) == 0 {
-		fmt.Fprintln(w, "No SQS queues found.")
+		if _, err := fmt.Fprintln(w, "No SQS queues found."); err != nil {
+			return err
+		}
 
 		return nil
 	}
 
 	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 
-	fmt.Fprint(tw, "QUEUE URL\n")
+	if _, err := fmt.Fprint(tw, "QUEUE URL\n"); err != nil {
+		return err
+	}
 
 	for _, url := range allQueueUrls {
-		fmt.Fprintf(tw, "%s\n", url)
+		if _, err := fmt.Fprintf(tw, "%s\n", url); err != nil {
+			return err
+		}
 	}
 
 	return tw.Flush()
@@ -115,19 +121,26 @@ func ReceiveMessage(ctx context.Context, api MessageReceiver, queueURL string, w
 	}
 
 	if len(output.Messages) == 0 {
-		fmt.Fprintln(w, "No SQS messages found.")
+		if _, err := fmt.Fprintln(w, "No SQS messages found."); err != nil {
+			return err
+		}
 
 		return nil
 	}
 
 	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 
-	fmt.Fprint(tw, "MESSAGE ID\tBODY\n")
+	if _, err := fmt.Fprint(tw, "MESSAGE ID\tBODY\n"); err != nil {
+		return err
+	}
 
 	for _, message := range output.Messages {
 		safeBody := strings.ReplaceAll(aws.ToString(message.Body), "\n", "\\n")
 		safeBody = strings.ReplaceAll(safeBody, "\t", "\\t")
-		fmt.Fprintf(tw, "%s\t%s\n", aws.ToString(message.MessageId), safeBody)
+
+		if _, err := fmt.Fprintf(tw, "%s\t%s\n", aws.ToString(message.MessageId), safeBody); err != nil {
+			return err
+		}
 	}
 
 	return tw.Flush()

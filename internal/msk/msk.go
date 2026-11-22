@@ -89,21 +89,28 @@ func ListClusters(ctx context.Context, api ClustersLister, w io.Writer) error {
 	}
 
 	if len(allClusters) == 0 {
-		fmt.Fprintln(w, "No MSK clusters found.")
+		if _, err := fmt.Fprintln(w, "No MSK clusters found."); err != nil {
+			return err
+		}
 
 		return nil
 	}
 
 	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 
-	fmt.Fprint(tw, "CLUSTER NAME\tARN\tSTATUS\n")
+	if _, err := fmt.Fprint(tw, "CLUSTER NAME\tARN\tSTATUS\n"); err != nil {
+		return err
+	}
 
 	for _, cluster := range allClusters {
-		fmt.Fprintf(tw, "%s\t%s\t%s\n",
+		_, err := fmt.Fprintf(tw, "%s\t%s\t%s\n",
 			awsutil.DerefString(cluster.ClusterName),
 			awsutil.DerefString(cluster.ClusterArn),
 			cluster.State,
 		)
+		if err != nil {
+			return err
+		}
 	}
 
 	return tw.Flush()
@@ -133,21 +140,28 @@ func ListTopics(ctx context.Context, clusterArn string, api TopicsLister, w io.W
 	}
 
 	if len(allTopics) == 0 {
-		fmt.Fprintln(w, "No topics found.")
+		if _, err := fmt.Fprintln(w, "No topics found."); err != nil {
+			return err
+		}
 
 		return nil
 	}
 
 	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 
-	fmt.Fprint(tw, "TOPIC NAME\tPARTITIONS\tREPLICATION\n")
+	if _, err := fmt.Fprint(tw, "TOPIC NAME\tPARTITIONS\tREPLICATION\n"); err != nil {
+		return err
+	}
 
 	for _, topic := range allTopics {
-		fmt.Fprintf(tw, "%s\t%d\t%d\n",
+		_, err := fmt.Fprintf(tw, "%s\t%d\t%d\n",
 			awsutil.DerefString(topic.TopicName),
 			awsutil.DerefInt32(topic.PartitionCount),
 			awsutil.DerefInt32(topic.ReplicationFactor),
 		)
+		if err != nil {
+			return err
+		}
 	}
 
 	return tw.Flush()
@@ -246,7 +260,7 @@ func Consume(ctx context.Context, cfg aws.Config, ccfg ConsumeConfig, w io.Write
 	}
 
 	return svc.Consume(ctx, kcfg, func(r *internalkafka.Record) {
-		fmt.Fprintf(w, "Partition: %d | Offset: %d | Key: %s | Value: %s\n",
+		_, _ = fmt.Fprintf(w, "Partition: %d | Offset: %d | Key: %s | Value: %s\n",
 			r.Partition, r.Offset, string(r.Key), string(r.Value))
 	})
 }

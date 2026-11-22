@@ -29,19 +29,38 @@ type Getter interface {
 	) (*secretsmanager.GetSecretValueOutput, error)
 }
 
+type secretEntry struct {
+	name string
+	arn  string
+}
+
 // ListSecrets lists Secrets Manager secrets using the provided API client.
 func ListSecrets(ctx context.Context, api Lister, w io.Writer) error {
-	var (
-		allSecrets []string
-		allArns    []string
-	)
+	secrets, err := fetchAllSecrets(ctx, api)
+	if err != nil {
+		return err
+	}
+
+	if len(secrets) == 0 {
+		if _, err := fmt.Fprintln(w, "No secrets found."); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return writeSecretsTable(w, secrets)
+}
+
+func fetchAllSecrets(ctx context.Context, api Lister) ([]secretEntry, error) {
+	var secrets []secretEntry
 
 	input := &secretsmanager.ListSecretsInput{}
 
 	for {
 		output, err := api.ListSecrets(ctx, input)
 		if err != nil {
-			return fmt.Errorf("listing secrets: %w", err)
+			return nil, fmt.Errorf("listing secrets: %w", err)
 		}
 
 		for _, s := range output.SecretList {
@@ -49,8 +68,7 @@ func ListSecrets(ctx context.Context, api Lister, w io.Writer) error {
 				continue
 			}
 
-			allSecrets = append(allSecrets, *s.Name)
-			allArns = append(allArns, *s.ARN)
+			secrets = append(secrets, secretEntry{name: *s.Name, arn: *s.ARN})
 		}
 
 		if output.NextToken == nil || *output.NextToken == "" {
@@ -60,18 +78,20 @@ func ListSecrets(ctx context.Context, api Lister, w io.Writer) error {
 		input.NextToken = output.NextToken
 	}
 
-	if len(allSecrets) == 0 {
-		fmt.Fprintln(w, "No secrets found.")
+	return secrets, nil
+}
 
-		return nil
-	}
-
+func writeSecretsTable(w io.Writer, secrets []secretEntry) error {
 	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 
-	fmt.Fprint(tw, "NAME\tARN\n")
+	if _, err := fmt.Fprint(tw, "NAME\tARN\n"); err != nil {
+		return err
+	}
 
-	for i := range allSecrets {
-		fmt.Fprintf(tw, "%s\t%s\n", allSecrets[i], allArns[i])
+	for _, s := range secrets {
+		if _, err := fmt.Fprintf(tw, "%s\t%s\n", s.name, s.arn); err != nil {
+			return err
+		}
 	}
 
 	return tw.Flush()
@@ -86,24 +106,22 @@ func GetSecretValue(ctx context.Context, api Getter, secretID string, w io.Write
 		return fmt.Errorf("getting secret value: %w", err)
 	}
 
-	if output.SecretString != nil {
-		secretStr := *output.SecretString
-
-		if isJSON(secretStr) {
-			var prettyJSON []byte
-
-			prettyJSON, err = json.MarshalIndent(json.RawMessage(secretStr), "", "  ")
-			if err == nil {
-				fmt.Fprintln(w, string(prettyJSON))
-
-				return nil
-			}
-		}
-
-		fmt.Fprintln(w, secretStr)
+	if output.SecretString == nil {
+		return nil
 	}
 
-	return nil
+	secretStr := *output.SecretString
+	if isJSON(secretStr) {
+		if prettyJSON, err := json.MarshalIndent(json.RawMessage(secretStr), "", "  "); err == nil {
+			_, writeErr := fmt.Fprintln(w, string(prettyJSON))
+
+			return writeErr
+		}
+	}
+
+	_, writeErr := fmt.Fprintln(w, secretStr)
+
+	return writeErr
 }
 
 func isJSON(s string) bool {

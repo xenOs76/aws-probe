@@ -41,14 +41,18 @@ func ListBuckets(ctx context.Context, api BucketsLister, w io.Writer) error {
 	}
 
 	if len(output.Buckets) == 0 {
-		fmt.Fprintln(w, "No S3 buckets found.")
+		if _, err := fmt.Fprintln(w, "No S3 buckets found."); err != nil {
+			return err
+		}
 
 		return nil
 	}
 
 	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 
-	fmt.Fprint(tw, "NAME\tCREATED\n")
+	if _, err := fmt.Fprint(tw, "NAME\tCREATED\n"); err != nil {
+		return err
+	}
 
 	for _, bucket := range output.Buckets {
 		created := ""
@@ -56,7 +60,9 @@ func ListBuckets(ctx context.Context, api BucketsLister, w io.Writer) error {
 			created = bucket.CreationDate.Format("2006-01-02 15:04:05")
 		}
 
-		fmt.Fprintf(tw, "%s\t%s\n", awsutil.DerefString(bucket.Name), created)
+		if _, err := fmt.Fprintf(tw, "%s\t%s\n", awsutil.DerefString(bucket.Name), created); err != nil {
+			return err
+		}
 	}
 
 	return tw.Flush()
@@ -144,7 +150,7 @@ func renderCommonPrefixes(tw *tabwriter.Writer, prefixes []s3types.CommonPrefix,
 	for _, cp := range prefixes {
 		if cp.Prefix != nil {
 			displayKey := StripPrefix(awsutil.DerefString(cp.Prefix), basePrefix)
-			fmt.Fprintf(tw, "%s\t-\t0\n", displayKey)
+			_, _ = fmt.Fprintf(tw, "%s\t-\t0\n", displayKey)
 		}
 	}
 }
@@ -159,7 +165,7 @@ func renderContents(tw *tabwriter.Writer, contents []s3types.Object, basePrefix 
 		size := FormatSize(awsutil.DerefInt64(obj.Size))
 		displayKey := StripPrefix(awsutil.DerefString(obj.Key), basePrefix)
 
-		fmt.Fprintf(tw, "%s\t%s\t%s\n", displayKey, modified, size)
+		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\n", displayKey, modified, size)
 	}
 }
 
