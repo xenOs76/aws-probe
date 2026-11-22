@@ -1,3 +1,14 @@
+## 0.3.2 (2026-11-22)
+
+### CI
+
+    Update GitHub Actions workflows and Go module to Go 1.27.4.
+
+### Fix
+
+    Resolve `GO-2026-6859` (stdlib `net/http`) via Go 1.27.4 and `GO-2026-6865` / `GO-2026-5841` by upgrading `github.com/klauspost/compress` to `v1.20.5` (with updated `vendor/`).
+    Handle `fmt.Fprint` / `fmt.Fprintf` / `fmt.Fprintln` errors and simplify control flow across CLI/internal packages to pass `golangci-lint`.
+
 ## 0.3.1 (2026-08-22)
 
 ### CI
